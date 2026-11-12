@@ -10,7 +10,7 @@ var LLC = { gen: true, lv: 3 }, $ = function (i) {
 
 // One login for everyone: the account itself says whether it is a student, faculty or admin.
 function view() {
-  var h = '<div style="text-align:center;margin-bottom:6px">' + bot(64) + '</div><h1>LearnLink</h1><p class="sub">Study smarter from your own course modules</p>' +
+  var h = '<div style="display:flex;justify-content:center;margin-bottom:6px">' + bot(64) + '</div><h1>LearnLink</h1><p class="sub">Study smarter from your own course modules</p>' +
     '<label for="em">BISU email</label><input id="em" type="email" autocomplete="username" placeholder="name@bisu.edu.ph" style="width:100%" onkeydown="if(event.key===\'Enter\')$(\'pw\').focus()" onblur="var v=this.value.trim();if(v&&v.indexOf(\'@\')<0)this.value=v+\'@bisu.edu.ph\'">' +
     '<label for="pw">Password</label><div style="position:relative"><input id="pw" type="password" autocomplete="current-password" style="width:100%;padding-right:64px" onkeydown="if(event.key===\'Enter\')go()"><button type="button" onclick="var p=$(\'pw\');p.type=p.type===\'password\'?\'text\':\'password\';this.textContent=p.type===\'password\'?\'Show\':\'Hide\'" style="position:absolute;right:4px;top:4px;padding:5px 10px;font-size:12px;border:none">Show</button></div>' +
     '<p style="margin:6px 0 0;text-align:right;font-size:13px"><a href="#" onclick="forgot();return false" style="color:var(--ac);font-weight:700">Forgot password?</a></p>' +
@@ -89,7 +89,7 @@ var FP_ERR = {
   php_unreachable: "Cannot reach the server."
 };
 function fpCard(h) {
-  $("card").innerHTML = '<div style="text-align:center;margin-bottom:6px">' + bot(52) + '</div><h1 style="font-size:22px">Forgot password</h1>' + h +
+  $("card").innerHTML = '<div style="display:flex;justify-content:center;margin-bottom:6px">' + bot(52) + '</div><h1 style="font-size:22px">Forgot password</h1>' + h +
     '<p class="sub" style="margin:14px 0 0"><a href="#" onclick="MSG=\'\';view();return false" style="color:var(--ac);font-weight:700">Back to log in</a></p>';
 }
 function forgot() {

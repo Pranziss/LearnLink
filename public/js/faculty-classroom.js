@@ -206,10 +206,11 @@ tabs = function () {
   return [
     ["mat", "Materials" + (bad ? " (" + bad + " failed)" : "")],
     ["gc", "Classroom" + (g.linked && g.drafts.length ? " (" + g.drafts.length + ")" : "")],
-    ["enr", "Enrollment" + (c.req.length ? " (" + c.req.length + ")" : "")],
+    // Join codes and requests exist only in the sample data (?demo); real class lists come from Google Classroom.
+    window.LL_DEMO ? ["enr", "Enrollment" + (c.req.length ? " (" + c.req.length + ")" : "")] : null,
     ["ins", "Insights"],
     ["tst", "Test chat"]
-  ].map(function (t) {
+  ].filter(Boolean).map(function (t) {
     return '<button class="' + (S.tab === t[0] ? "on" : "") + '" onclick="S.tab=\'' + t[0] + '\';render()">' + t[1] + '</button>';
   }).join("");
 };

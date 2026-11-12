@@ -1,0 +1,112 @@
+/* ==========================================================================
+   LearnLink theme: BISU blue + gold. The one place colors are defined.
+   Loaded AFTER each page's own stylesheet (student, faculty, admin, login), so these values win.
+   Light by default; dark follows the device, or the Appearance setting (data-theme on <html>).
+   ========================================================================== */
+:root {
+  --bg: #F5F7FB;      /* page */
+  --s1: #ECF0F7;      /* soft surface: chips, inputs, hover */
+  --s2: #FFFFFF;      /* cards */
+  --tx: #0B1B47;      /* text */
+  --t2: #4A5A85;      /* secondary text */
+  --t3: #67739A;      /* hints */
+  --bd: #E0E5EF;      /* borders */
+  --bd2: #C8D0E2;
+  --ac: #002583;      /* BISU blue: main buttons, links, active items */
+  --acb: #E8EDFB;     /* blue tint */
+  --sh: #FFB800;      /* BISU gold: button underline, highlights */
+  --pk: #FFF4D6;      /* gold tint */
+  --bt: #FFE7A3;      /* stronger gold tint (selected) */
+  --mt: #DDF3E7;      /* green tint */
+  --sk: #ECF0F7;
+  --wb: #FFF4D6;      /* warning background / text */
+  --wt: #6B4700;
+  --er: #C62828;      /* error */
+  --erb: #FDECEC;
+  --ok: #1B6E45;      /* success */
+  --bl1: #FFF0C4;     /* background glows */
+  --bl2: #DCE3F7;
+  --sbb: #0A1F63;     /* sidebar */
+  --sbt: #FFFFFF;
+  --shadow: 0 1px 2px rgba(11, 27, 71, .06), 0 8px 24px -14px rgba(11, 27, 71, .28);
+  --radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A1230;
+    --s1: #131D47;
+    --s2: #0F1839;
+    --tx: #EEF1FA;
+    --t2: #AEB8D6;
+    --t3: #8591B8;
+    --bd: #1F2B5E;
+    --bd2: #2F3F80;
+    --ac: #FFB800;
+    --acb: #1B2760;
+    --sh: #8A6500;
+    --pk: #2B2610;
+    --bt: #4A3A10;
+    --mt: #173A2E;
+    --sk: #18235A;
+    --wb: #2B2610;
+    --wt: #FFD25E;
+    --er: #FF8F8F;
+    --erb: #3F1D24;
+    --ok: #7FE0AA;
+    --bl1: #1C1908;
+    --bl2: #122060;
+    --sbb: #0C1640;
+    --sbt: #EEF1FA;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px -16px rgba(0, 0, 0, .7);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0A1230;
+  --s1: #131D47;
+  --s2: #0F1839;
+  --tx: #EEF1FA;
+  --t2: #AEB8D6;
+  --t3: #8591B8;
+  --bd: #1F2B5E;
+  --bd2: #2F3F80;
+  --ac: #FFB800;
+  --acb: #1B2760;
+  --sh: #8A6500;
+  --pk: #2B2610;
+  --bt: #4A3A10;
+  --mt: #173A2E;
+  --sk: #18235A;
+  --wb: #2B2610;
+  --wt: #FFD25E;
+  --er: #FF8F8F;
+  --erb: #3F1D24;
+  --ok: #7FE0AA;
+  --bl1: #1C1908;
+  --bl2: #122060;
+  --sbb: #0C1640;
+  --sbt: #EEF1FA;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px -16px rgba(0, 0, 0, .7);
+}
+
+/* ---------- shared basics ---------- */
+body {
+  font-family: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--bt);
+  color: var(--tx);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bd2) transparent;
+}

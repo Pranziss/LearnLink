@@ -473,7 +473,7 @@ function home() {
     return '<button class="card stat" onclick="' + fn + '()"><div class="sm">' + l + '</div><div class="big">' +
       v + "</div>" + sub + '<div class="hint">View details</div></button>'
   };
-  return '<h2 style="font-size:22px;margin-top:6px">Welcome back, Admin ✨</h2><p style="color:var(--t2);margin:2px 0 14px">Here is how LearnLink is doing today.</p>' +
+  return '<h2 style="font-size:22px;margin-top:6px">Welcome back, Admin</h2><p style="color:var(--t2);margin:2px 0 14px">Here is how LearnLink is doing today.</p>' +
     (pend() ? '<div class="card" style="background:var(--bt);display:flex;justify-content:space-between;align-items:center;gap:10px"><span><b>' +
     pend() + " data request" + (pend() > 1 ? "s" : "") + ' waiting</b><br><span class="sm" style="color:var(--wt)">Students asked to export or delete their data.</span></span><button class="p" onclick="S.pt=\'req\';go(\'pv\')">Review</button></div>' : "") +
     (nc ? '<div class="card" style="background:var(--erb);display:flex;justify-content:space-between;align-items:center;gap:10px"><span><b>' +

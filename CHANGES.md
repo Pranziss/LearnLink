@@ -1,5 +1,28 @@
 # Changes log
 
+## Nov 12, 2026: design pass
+
+No database change. Press Ctrl + Shift + R after updating.
+
+- **New `public/css/theme.css`:** the one place colors are defined (BISU blue + gold, light and dark), loaded after each
+  page's own stylesheet by the student, faculty, admin and login pages. `student.css` had three old themes stacked on top
+  of each other (green, purple, blue); the unused ones were removed.
+- **New `public/css/dashboard.css`** (faculty and admin): every card has the same calm surface instead of cycling gold,
+  blue and grey tints, so the numbers stand out.
+- **Sidebars (all apps):** the open item gets a gold edge instead of a full gold pill; gold stays on the main action.
+- **Student app:** the mascot is centered on the home screen; the home suggestions come from the student's own modules;
+  module rows all look the same (no more rainbow rows); the Settings photo is smaller.
+- **Login:** on wide screens, a campus photo panel sits beside the form. Phones keep the single card. The mascot is centered.
+- **Faculty and admin greetings:** the ✨ emoji was removed.
+
+### Faculty page: no more fake features
+- **Test chat uses the real AI** (`public/js/faculty.js`): the teacher asks like a student and gets the answer from this
+  course's published modules only, with its sources, or "Not in your modules" when nothing matches. It used to match
+  keywords against sample answers. If the AI isn't running, it says so.
+- **Enrollment tab and the "Join requests" card are hidden** outside `?demo`: join codes never existed on the server.
+  Class lists come from Google Classroom.
+- "1 sections" now says "1 section", and the Settings photo is smaller.
+
 ## Nov 12, 2026: Classroom reads Materials only, and no more fake data
 
 No database change. Restart `npm start`, then press Ctrl + Shift + R.

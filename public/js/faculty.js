@@ -549,14 +549,16 @@ function home() {
   };
 
   return '<div class="sc">' + '<h2 style="font-size:22px;margin-top:6px">' + greet() + ', ' + E(user.name) +
-    ' ✨</h2>' + '<p style="color:var(--t2);margin:2px 0 14px">Here is how your course sections are doing.</p>' +
+    '</h2>' + '<p style="color:var(--t2);margin:2px 0 14px">Here is how your course sections are doing.</p>' +
     (pend() ? '<div class="card" style="background:var(--bt);display:flex;justify-content:space-between;align-items:center;gap:10px">' +
     '<span><b>' + pend() + ' join request' + (pend() > 1 ? "s" : "") + ' waiting</b><br><span class="sm" style="color:var(--wt)">Students are asking to join your courses.</span></span>' +
     '<button class="p" onclick="openC(' + firstReq + ',\'enr\')">Review</button>' + '</div>' : "") + (bad ? '<div class="card" style="background:var(--erb);display:flex;justify-content:space-between;align-items:center;gap:10px">' +
     '<span><b>' + bad + ' file' + (bad > 1 ? "s" : "") + ' failed to process</b><br><span class="sm" style="color:var(--er)">Students can’t get answers from them until they are fixed.</span></span>' +
     '<button class="p" onclick="openC(' + firstBad + ',\'mat\',\'issue\')">Fix now</button>' + '</div>' : "") +
     '<div class="cg" style="margin-bottom:12px">' + stat("stuM", "Students", stu, '<div class="sm">' + CS.length +
-    " sections</div>") + stat("reqM", "Join requests", pend(), pend() ? '<div class="dl" style="color:var(--wt)">Waiting for you</div>' : '<div class="dl">All caught up</div>') +
+    (CS.length === 1 ? " section" : " sections") + "</div>") +
+    // join requests are sample data only (?demo)
+    (window.LL_DEMO ? stat("reqM", "Join requests", pend(), pend() ? '<div class="dl" style="color:var(--wt)">Waiting for you</div>' : '<div class="dl">All caught up</div>') : "") +
     stat("modM", "Modules live", lv + "/" + tm, '<div class="sm">' + (tm - lv) + " hidden</div>") + stat("qM",
     "Questions this week", sum(w, function (x) {
     return x.t;
@@ -1429,7 +1431,7 @@ render = function () {
 /* ==========================================================================
        Real data: courses, modules and uploaded files come from the database (PHP API).
        If the server is not reachable (page opened on its own), the sample data above stays.
-       Still sample data: the question statistics, enrollment/join requests and the Test chat answers.
+       Still sample data (demo only): enrollment/join requests. The Test chat uses the real AI (see the end of this file).
        ========================================================================== */
 var API = "/api/db/";
 
@@ -1731,3 +1733,63 @@ refresh = function (done) {
     if (done) done();
   });
 };
+
+/* ==========================================================================
+       Test chat with the real AI (live mode only; ?demo keeps the sample answers above).
+       The teacher asks like a student; the answer comes only from this course's published modules
+       (general answers off), so the teacher sees exactly what the modules cover.
+       ========================================================================== */
+if (!window.LL_DEMO) {
+  var TC_ERR = {
+    model_unreachable: "The AI isn’t running on the server. Start Ollama, then try again.",
+    too_many_requests: "Too many questions in a minute. Wait a moment, then try again.",
+    not_logged_in: "Your session ended. Reload the page and log in again."
+  };
+  ask = function (v) {
+    v = (v || "").trim();
+    if (!v) return;
+    var c = C(), m = { u: v, live: 1, busy: 1 };
+    S.tc.push(m);
+    render();
+    fetch("/api/ai", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ q: v, scope: c.id, gen: false }) }).then(function (r) {
+      return r.json().then(function (j) { if (!r.ok) throw j; return j; });
+    }).then(function (j) {
+      m.busy = 0; m.mode = j.mode; m.text = j.text || ""; m.src = j.sources || [];
+      render();
+    }, function (e) {
+      m.busy = 0; m.err = TC_ERR[e && e.error] || "LearnLink couldn’t answer right now. Try again in a moment.";
+      render();
+    });
+  };
+
+  function tcBody(m) {
+    if (m.busy) return '<p class="sm">LearnLink is writing the answer…</p>';
+    if (m.err) return '<span class="chip fl">Couldn’t answer</span><p style="margin:8px 0">' + E(m.err) + "</p>";
+    if (m.mode === "none" || (m.mode === "grounded" && /^I couldn.t find that in your course modules/i.test(m.text)))
+      return '<span class="chip fl">Not in your modules</span><p style="margin:8px 0">Students asking this would be told it isn’t in their modules. Add material to cover it.</p>';
+    var text = E(m.text).replace(/\n+/g, "<br>").replace(/\[(\d+)\]/g, '<sup style="color:var(--ac);font-weight:700">[$1]</sup>');
+    return (m.mode === "grounded" ? '<span class="chip">From your modules</span>' : "") + '<p style="margin:8px 0;line-height:1.7">' + text + "</p>" +
+      (m.src && m.src.length ? '<div style="display:flex;gap:6px;flex-wrap:wrap">' + m.src.map(function (s) {
+        return '<span class="chip pr">[' + s.n + "] " + E(s.title) + "</span>";
+      }).join("") + "</div>" : "");
+  }
+
+  tst = function () {
+    var c = C(), sug = c.mods.filter(function (x) { return x.pub; }).slice(0, 3).map(function (x) {
+      return "Explain " + x.t.replace(/^Module \d+:\s*/, "").replace(/^(what|who) (is|are)\s+/i, "").replace(/\?$/, "");
+    });
+    return '<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">' +
+      '<span><b>Testing as a student</b><div class="sm">Answers come only from this course’s published modules, just like a student would get.</div></span>' +
+      (S.tc.length ? '<button onclick="S.tc=[];render()" style="font-size:12px;padding:4px 12px">Clear chat</button>' : "") + "</div>" +
+      '<div id="msgs">' + S.tc.map(function (m) {
+        return '<div style="display:flex;justify-content:flex-end;margin:10px 0"><div style="background:var(--s1);border-radius:16px;padding:8px 14px;max-width:80%">' +
+          E(m.u) + '</div></div><div style="margin:10px 0">' + (m.live ? tcBody(m) : "") + "</div>";
+      }).join("") + (S.tc.length ? "" : '<p class="sm">Try one of these, or ask your own question.</p>') + "</div>" +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' + sug.map(function (q) {
+        return '<button class="chip" data-q="' + EA(q) + '" onclick="ask(this.dataset.q)">' + E(q) + "</button>";
+      }).join("") + "</div>" +
+      '<div style="display:flex;gap:8px;margin-top:12px"><input id="ti" placeholder="Ask like a student…" aria-label="Ask a question" style="flex:1" onkeydown="if(event.key===\'Enter\')ts()">' +
+      '<button class="p" onclick="ts()">Ask</button></div>';
+  };
+}

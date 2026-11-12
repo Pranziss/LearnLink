@@ -89,7 +89,7 @@ function fsPage() {
   if (u.created_at) rows.push(["Member since", fsDate(u.created_at)]);
   var cur = fsTheme();
   return '<div class="sc"><div style="max-width:560px;margin:0 auto">' +
-    '<div style="text-align:center;margin:14px 0 20px">' + fsAv(150) +
+    '<div style="text-align:center;margin:14px 0 20px">' + fsAv(96) +
     '<label class="p" style="display:inline-block;cursor:pointer;padding:8px 16px;border-radius:14px;font-weight:700;font-size:14px">' +
     (FS.ph ? "Choose another" : "Choose a photo") + '<input type="file" accept="image/*" hidden onchange="fsPick(this)"></label>' +
     (FS.ph ? ' <button onclick="fsRmPh()" style="margin-left:6px">Remove</button>' : "") +

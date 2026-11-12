@@ -453,16 +453,23 @@ function openC0(i) {
   mob();
   render()
 }
+// Home suggestions: the first module of each of the student's first three courses (live), or fixed examples (demo).
+function sugg() {
+  if (!LIVE) return ["What is the CIA triad?", "Ethics vs morality", "Flexbox vs grid"];
+  return CO.filter(function (c) { return c[3].length }).slice(0, 3).map(function (c) {
+    return "Explain " + c[3][0].replace(/^(what|who) (is|are)\s+/i, "").replace(/\?$/, "")
+  })
+}
 /* chat */
 function chatV() {
   var h = "", x = "";
   if (S.v === "home") {
-    h = '<div class="sc" style="display:grid;place-items:center;padding-bottom:40px"><div style="width:100%;max-width:540px"><div style="text-align:center;margin-bottom:6px">' +
-      bot(84) + '</div><h2 style="text-align:center;font-size:24px;margin:0 0 4px">✨ What do you want to study today?</h2><p style="text-align:center;color:var(--t2);margin:0 0 18px">Your teachers’ modules come first, with sources. Anything else gets a clearly labeled general answer.</p>' +
+    h = '<div class="sc" style="display:grid;place-items:center;padding-bottom:40px"><div style="width:100%;max-width:540px"><div style="display:flex;justify-content:center;margin-bottom:10px">' +
+      bot(84) + '</div><h2 style="text-align:center;font-size:26px;margin:0 0 6px;letter-spacing:-.01em">What do you want to study today?</h2><p style="text-align:center;color:var(--t2);margin:0 0 18px">Your teachers’ modules come first, with sources. Anything else gets a clearly labeled general answer.</p>' +
       box("qi", "Ask anything…") + '<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px">' +
-      ["Hello", "What is the CIA triad?", "Ethics vs morality", "Flexbox vs grid"].map(function (t) {
-      return '<button onclick="$(\'qi\').value=this.textContent;$(\'qi\').focus()" style="font-size:13px;color:var(--t2)">' +
-        t + "</button>"
+      sugg().map(function (t) {
+      return '<button class="sug" onclick="$(\'qi\').value=this.textContent;$(\'qi\').focus()">' +
+        E(t) + "</button>"
     }).join("") + "</div></div></div>"
   } else {
     h = '<div class="sc" id="msgs" style="padding-right:' + (S.pn ? "292px" : "22px") + '">' + CH.map(function (m) {
@@ -948,7 +955,7 @@ function setV() {
   ];
   return {
     h: '<div class="sc"><div style="max-width:560px;margin:0 auto"><div style="text-align:center;margin:8px 0 20px">' +
-      photoBox(150) + photoBtn() + '<p class="er" id="e" style="text-align:center"></p><h2 style="margin:2px 0 6px;font-size:26px">' +
+      photoBox(96) + photoBtn() + '<p class="er" id="e" style="text-align:center"></p><h2 style="margin:2px 0 6px;font-size:26px">' +
       E(name()) + '</h2><span class="chip">Student</span></div><div class="card"><b>About you</b>' + rows.map(function (r,
       i) {
       return '<div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;' + (i ? "border-top:1px solid var(--bd)" : "") +

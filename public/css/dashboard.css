@@ -1,0 +1,25 @@
+/* ==========================================================================
+   Faculty and admin dashboards: calm, neutral cards so the numbers stand out,
+   and the same sidebar style as the student app. Loaded after theme.css.
+   ========================================================================== */
+
+/* One surface for every card (the old rule cycled gold / blue / grey tints) */
+.cg .card:nth-child(n) {
+  background: var(--s2);
+}
+
+.card {
+  border-color: var(--bd);
+  box-shadow: var(--shadow);
+}
+
+/* Sidebar: the open item gets a gold edge instead of a full gold pill */
+#sb .it.on {
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  box-shadow: inset 3px 0 0 #FFB800;
+}
+
+#sb .it.on .sm {
+  color: rgba(255, 255, 255, .75);
+}

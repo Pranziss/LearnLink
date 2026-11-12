@@ -81,6 +81,8 @@ starting content imported by `setup.php`. Each course is a folder of numbered ma
 | `apps/student.html` | Student app shell: chat with the AI, course spaces, chat history, settings. |
 | `apps/faculty.html` | Faculty app shell: courses, module uploads, Classroom sync, Insights, settings. |
 | `apps/admin.html` | Admin app shell: overview, users, courses, analytics, audit log. |
+| `css/theme.css` | The one place colors are defined (BISU blue + gold, light and dark). Loaded after each page's own stylesheet by the student, faculty, admin and login pages. |
+| `css/dashboard.css` | Shared look for the faculty and admin dashboards: neutral cards, sidebar style. |
 | `css/landing.css` | Styles for `index.html`. |
 | `css/login.css` | Styles for `login.html`. |
 | `css/student.css` | Styles for the student app (light and dark). |

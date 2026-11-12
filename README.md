@@ -103,7 +103,8 @@ Do not use the "uncensored" or "abliterated" models for a school system.
   forces the change on first login.
 - **Sign-up codes by email** need a sending account (`SMTP_*` in `.env`) and internet at that moment. Without them,
   the teacher or admin reads the code out. The old on-screen admin login code (a demo) was removed.
-- **Faculty enrollment/join requests and the Test chat** are still sample data.
+- **Faculty enrollment/join codes** are not built; the Enrollment tab only appears in `?demo`. Class lists come from
+  Google Classroom. (The faculty **Test chat** uses the real AI.)
 - The relevance gates in `retrieval.js` (`GATES`) were not tuned on real BISU questions. Tune them with your test set.
 - Scanned PDFs have no text layer, so they show as failed on upload or as "Not added" from Classroom (no OCR).
 - Insights count a question for a course when the answer came from that course's modules, or when it was asked in a

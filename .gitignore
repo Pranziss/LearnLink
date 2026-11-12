@@ -19,3 +19,7 @@ Thumbs.db
 desktop.ini
 .DS_Store
 *.log
+
+# Thesis drafts and other documents kept next to the code
+*.docx
+*.pptx

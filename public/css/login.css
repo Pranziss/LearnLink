@@ -307,3 +307,69 @@ label {
     transition: none!important;
   }
 }
+
+/* ==========================================================================
+   Wide screens: campus photo panel beside the login card. Phones keep the single card.
+   ========================================================================== */
+.hero {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  #login {
+    grid-template-columns: minmax(0, 1.1fr) minmax(440px, 1fr);
+    place-items: stretch;
+    padding: 0;
+  }
+  .hero {
+    display: flex;
+    align-items: flex-end;
+    padding: 56px;
+    color: #fff;
+    background: linear-gradient(180deg, rgba(10, 31, 99, .25) 0%, rgba(10, 18, 48, .92) 75%),
+      url(../img/bisu-balilihan.webp) center / cover, #0A1F63;
+  }
+  .hero-in {
+    max-width: 480px;
+  }
+  .hero-tag {
+    display: inline-block;
+    margin: 0 0 16px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #FFB800;
+    color: #0A1A45;
+    font-weight: 800;
+    font-size: 12px;
+  }
+  .hero h2 {
+    font-size: 36px;
+    line-height: 1.15;
+    letter-spacing: -.01em;
+    margin: 0 0 20px;
+  }
+  .hero ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 12px;
+    font-size: 15px;
+    color: rgba(255, 255, 255, .88);
+  }
+  .hero li::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #FFB800;
+    margin-right: 12px;
+    vertical-align: middle;
+  }
+  #card {
+    align-self: center;
+    justify-self: center;
+    margin: 32px;
+  }
+}

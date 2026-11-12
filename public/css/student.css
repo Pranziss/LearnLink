@@ -1,57 +1,7 @@
 :root {
-  --bg: #fbfcfa;
-  --s1: #f0f3ee;
-  --s2: #fff;
-  --tx: #16231b;
-  --t2: #51605a;
-  --t3: #7d8a83;
-  --bd: #dde3dd;
-  --bd2: #c2ccc3;
-  --ac: #1f6f4a;
-  --acb: #e3f1e8;
-  --er: #b3261e;
-  --erb: #fbe9e7;
-  --wb: #fff3d6;
-  --wt: #8a5a00;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top,0px);
   padding-bottom: env(safe-area-inset-bottom,0px);
-}
-
-@media (prefers-color-scheme:dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #101713;
-    --s1: #18211c;
-    --s2: #141c17;
-    --tx: #e8efe9;
-    --t2: #a7b5ac;
-    --t3: #7b897f;
-    --bd: #26322b;
-    --bd2: #37463c;
-    --ac: #6fcf9b;
-    --acb: #1c3326;
-    --er: #f2958e;
-    --erb: #3a2220;
-    --wb: #3a2f17;
-    --wt: #e8c36a;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #101713;
-  --s1: #18211c;
-  --s2: #141c17;
-  --tx: #e8efe9;
-  --t2: #a7b5ac;
-  --t3: #7b897f;
-  --bd: #26322b;
-  --bd2: #37463c;
-  --ac: #6fcf9b;
-  --acb: #1c3326;
-  --er: #f2958e;
-  --erb: #3a2220;
-  --wb: #3a2f17;
-  --wt: #e8c36a;
 }
 
 html {
@@ -473,80 +423,6 @@ label {
   }
 }
 
-:root {
-  --bg: #fff8fc;
-  --s1: #f5eeff;
-  --s2: #fff;
-  --tx: #463a5c;
-  --t2: #7b6e92;
-  --t3: #a89cbc;
-  --bd: #ece2f7;
-  --bd2: #dccdef;
-  --ac: #7a52c7;
-  --acb: #efe5ff;
-  --er: #d4415b;
-  --erb: #ffe3ea;
-  --wb: #fff0cd;
-  --wt: #8a5a00;
-  --sh: #bfa8ee;
-  --pk: #ffe1ef;
-  --mt: #d9f6e8;
-  --sk: #dbeeff;
-  --bt: #fff3c9;
-  --bl1: #ffd9ec;
-  --bl2: #d9e8ff;
-}
-
-@media (prefers-color-scheme:dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #1b1626;
-    --s1: #261f35;
-    --s2: #221c2f;
-    --tx: #f2eafc;
-    --t2: #c0b3d6;
-    --t3: #8f83a6;
-    --bd: #352b49;
-    --bd2: #473a62;
-    --ac: #c4a8ff;
-    --acb: #35294d;
-    --er: #ff9bb0;
-    --erb: #432431;
-    --wb: #44361a;
-    --wt: #f0c96c;
-    --sh: #4a3a70;
-    --pk: #3d2a3f;
-    --mt: #1f3a30;
-    --sk: #1f3144;
-    --bt: #3f3620;
-    --bl1: #3a2145;
-    --bl2: #1f2c4a;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #1b1626;
-  --s1: #261f35;
-  --s2: #221c2f;
-  --tx: #f2eafc;
-  --t2: #c0b3d6;
-  --t3: #8f83a6;
-  --bd: #352b49;
-  --bd2: #473a62;
-  --ac: #c4a8ff;
-  --acb: #35294d;
-  --er: #ff9bb0;
-  --erb: #432431;
-  --wb: #44361a;
-  --wt: #f0c96c;
-  --sh: #4a3a70;
-  --pk: #3d2a3f;
-  --mt: #1f3a30;
-  --sk: #1f3144;
-  --bt: #3f3620;
-  --bl1: #3a2145;
-  --bl2: #1f2c4a;
-}
-
 body {
   font-family: "Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
@@ -659,22 +535,6 @@ button:active {
 
 .mod:hover {
   transform: translateY(-2px) scale(1.01);
-}
-
-.mod:nth-of-type(4n+1) {
-  background: var(--pk);
-}
-
-.mod:nth-of-type(4n+2) {
-  background: var(--mt);
-}
-
-.mod:nth-of-type(4n+3) {
-  background: var(--sk);
-}
-
-.mod:nth-of-type(4n+4) {
-  background: var(--bt);
 }
 
 .mod.on {
@@ -876,96 +736,6 @@ mark {
   }
 }
 
-:root {
-  --bg: #F6F7FA;
-  --s1: #E5E8EF;
-  --s2: #fff;
-  --tx: #0A1A45;
-  --t2: #4A5A85;
-  --t3: #65719A;
-  --bd: #D9DEEA;
-  --bd2: #BFC7DA;
-  --ac: #002583;
-  --acb: #E3E9FA;
-  --sh: #FFB800;
-  --pk: #FFF1C7;
-  --mt: #DDF3E7;
-  --sk: #E5E8EF;
-  --bt: #FFE08A;
-  --wb: #FFF1C7;
-  --wt: #6B4700;
-  --er: #C62828;
-  --erb: #FDE7E7;
-  --bl1: #FFE9A8;
-  --bl2: #CFD8F3;
-}
-
-@media (prefers-color-scheme:dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0A1230;
-    --s1: #111C4A;
-    --s2: #0E1738;
-    --tx: #EEF1FA;
-    --t2: #AEB8D6;
-    --t3: #8591B8;
-    --bd: #1E2B62;
-    --bd2: #2F3F80;
-    --ac: #FFB800;
-    --acb: #1B2760;
-    --sh: #8A6500;
-    --pk: #3A3012;
-    --mt: #173A2E;
-    --sk: #18235A;
-    --bt: #5A4410;
-    --wb: #3A3012;
-    --wt: #FFD25E;
-    --er: #FF8F8F;
-    --erb: #3F1D24;
-    --bl1: #2A2406;
-    --bl2: #122060;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg: #0A1230;
-  --s1: #111C4A;
-  --s2: #0E1738;
-  --tx: #EEF1FA;
-  --t2: #AEB8D6;
-  --t3: #8591B8;
-  --bd: #1E2B62;
-  --bd2: #2F3F80;
-  --ac: #FFB800;
-  --acb: #1B2760;
-  --sh: #8A6500;
-  --pk: #3A3012;
-  --mt: #173A2E;
-  --sk: #18235A;
-  --bt: #5A4410;
-  --wb: #3A3012;
-  --wt: #FFD25E;
-  --er: #FF8F8F;
-  --erb: #3F1D24;
-  --bl1: #2A2406;
-  --bl2: #122060;
-}
-
-.mod:nth-of-type(4n+1) {
-  background: var(--pk);
-}
-
-.mod:nth-of-type(4n+2) {
-  background: var(--acb);
-}
-
-.mod:nth-of-type(4n+3) {
-  background: var(--s1);
-}
-
-.mod:nth-of-type(4n+4) {
-  background: var(--s2);
-}
-
 .mod.on {
   background: var(--bt);
   border-color: var(--ac);
@@ -981,23 +751,6 @@ mark {
 
 .bar {
   box-shadow: 0 10px 24px -10px rgba(0,37,131,.45);
-}
-
-:root {
-  --sbb: #002583;
-  --sbt: #fff;
-}
-
-@media (prefers-color-scheme:dark) {
-  :root:not([data-theme="light"]) {
-    --sbb: #0D2272;
-    --sbt: #EEF1FA;
-  }
-}
-
-:root[data-theme="dark"] {
-  --sbb: #0D2272;
-  --sbt: #EEF1FA;
 }
 
 #sb {
@@ -1331,6 +1084,65 @@ body {
     max-width: calc(100vw - 24px);
   }
 }
+
+/* ==========================================================================
+   Polish (Nov 2026): one calm surface for cards and module rows, a clearer
+   sidebar, and suggestion chips. Colors come from theme.css.
+   ========================================================================== */
+.card,
+.mod {
+  background: var(--s2);
+  border: 1px solid var(--bd);
+  box-shadow: var(--shadow);
+}
+
+.mod {
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.mod:hover {
+  border-color: var(--bd2);
+  transform: translateY(-1px);
+}
+
+.mod.on {
+  background: var(--pk);
+  border-color: var(--sh);
+}
+
+/* Sidebar: gold stays on the one main action (New chat); the open item gets a gold edge instead of a gold pill */
+#sb .it {
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+#sb .sub .it {
+  font-weight: 500;
+}
+
+#sb .it.on {
+  background: rgba(255, 255, 255, .12);
+  color: #fff;
+  box-shadow: inset 3px 0 0 #FFB800;
+}
+
+/* Home: suggestion chips */
+.sug {
+  font-size: 13px;
+  color: var(--t2);
+  background: var(--s2);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.sug:hover {
+  border-color: var(--ac);
+  color: var(--ac);
+}
+
 
 @media (prefers-reduced-motion:reduce) {
   * {
