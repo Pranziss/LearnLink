@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="LearnLink is a study assistant for BISU Balilihan. Ask a question and get an answer from your teachers' course modules, with sources.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <title>LearnLink | Study assistant for BISU Balilihan</title>
+  <link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="logo" viewBox="0 0 40 44">
+      <line x1="20" y1="8.5" x2="20" y2="4" stroke="#FFB800" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="20" cy="3.6" r="2.6" fill="#FFB800" stroke="#fff" stroke-width="1"/>
+      <path d="M3 26A17 17 0 0 1 37 26Z" fill="#002583"/>
+      <path d="M3 26A17 17 0 0 0 37 26Z" fill="#FFB800"/>
+      <circle cx="20" cy="26" r="17" fill="none" stroke="#fff" stroke-width="1.8"/>
+      <circle cx="14" cy="22" r="3.6" fill="#fff"/>
+      <circle cx="26" cy="22" r="3.6" fill="#fff"/>
+      <circle cx="14.8" cy="22.6" r="1.9" fill="#0A1A45"/>
+      <circle cx="26.8" cy="22.6" r="1.9" fill="#0A1A45"/>
+      <circle cx="15.4" cy="21.8" r=".7" fill="#fff"/>
+      <circle cx="27.4" cy="21.8" r=".7" fill="#fff"/>
+      <circle cx="9.5" cy="31.5" r="2.2" fill="#F08A24" opacity=".55"/>
+      <circle cx="30.5" cy="31.5" r="2.2" fill="#F08A24" opacity=".55"/>
+      <path d="M15.5 31Q20 35.5 24.5 31" fill="none" stroke="#0A1A45" stroke-width="2.2" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <header class="nav">
+    <a class="brand" href="#top">
+      <svg width="30" height="33" aria-hidden="true"><use href="#logo"/></svg>
+      LearnLink
+    </a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#who">Who it's for</a>
+      <a href="#next">Coming next</a>
+    </nav>
+    <a class="btn small" href="login.html">Log in</a>
+  </header>
+
+  <main id="top">
+    <section class="hero" aria-label="LearnLink at BISU Balilihan Campus">
+      <div class="hero-text">
+        <span class="pill">For BISU Balilihan students</span>
+        <h1>Study with answers from your own course modules.</h1>
+        <p class="lead">Ask a question. LearnLink finds the right passages in the modules your teachers approved, then explains them like a classmate would, with sources you can check.</p>
+        <div class="cta">
+          <a class="btn" href="login.html">Open LearnLink</a>
+          <a class="btn ghost" href="#how">See how it works</a>
+        </div>
+      </div>
+
+      <div class="chat" aria-label="Example conversation">
+        <div class="bubble me">Why is the CIA triad important?</div>
+        <div class="bubble ai">
+          <svg width="26" height="29" aria-hidden="true"><use href="#logo"/></svg>
+          <div>
+            <p>It gives you three checks for any security decision: keep data secret, keep it correct, and keep it available <b class="ref">[1]</b>.</p>
+            <div class="source">Information Assurance · Security Principles</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="features">
+      <h2>Built for studying, not guessing</h2>
+      <div class="grid four">
+        <article class="card">
+          <h3>Answers with sources</h3>
+          <p>Every answer points to the module it came from, so you can read the original and not just trust the reply.</p>
+        </article>
+        <article class="card">
+          <h3>Teacher approved</h3>
+          <p>It answers from the materials your faculty publish first. If a topic isn't there, it says so, and any general answer is clearly labeled.</p>
+        </article>
+        <article class="card">
+          <h3>Runs on campus</h3>
+          <p>Answers come from a BISU server on the campus network, so you can keep studying when the internet is down. No cloud AI, no API fees.</p>
+        </article>
+        <article class="card">
+          <h3>Made for phones</h3>
+          <p>Ask from your phone or laptop over the campus Wi-Fi, and rate any answer that misses the mark.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="band alt" id="how">
+      <h2>How it works</h2>
+      <ol class="grid three steps">
+        <li class="card">
+          <span class="num">1</span>
+          <h3>Teachers share modules</h3>
+          <p>Faculty keep posting in Google Classroom. LearnLink copies new posts in while the server is online, and the teacher publishes them. Files can also be uploaded on campus.</p>
+        </li>
+        <li class="card">
+          <span class="num">2</span>
+          <h3>You ask a question</h3>
+          <p>LearnLink matches your words by keywords and by meaning, then writes a short answer from the best passages.</p>
+        </li>
+        <li class="card">
+          <span class="num">3</span>
+          <h3>Check and rate</h3>
+          <p>Open the source to read the original, then tap helpful or not helpful.</p>
+        </li>
+      </ol>
+    </section>
+
+    <section class="band" id="who">
+      <h2>One place for everyone</h2>
+      <div class="grid three">
+        <article class="card">
+          <h3>Students</h3>
+          <p>Ask questions, revisit old chats, and download or delete your own data any time.</p>
+        </article>
+        <article class="card">
+          <h3>Faculty</h3>
+          <p>Link Google Classroom, publish what's ready, and see which answers students rated poorly.</p>
+        </article>
+        <article class="card">
+          <h3>Admin</h3>
+          <p>Create accounts, assign instructors to courses, and see how LearnLink is being used.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="band alt" id="next">
+      <h2>Coming next</h2>
+      <p class="lead" style="text-align:center;margin:-6px auto 18px">Planned features. They are not live yet.</p>
+      <div class="grid four">
+        <article class="card">
+          <span class="pill">Planned</span>
+          <h3>Review tools</h3>
+          <p>Summaries, quizzes and flashcards made from the same approved modules.</p>
+        </article>
+        <article class="card">
+          <span class="pill">Planned</span>
+          <h3>Change your password</h3>
+          <p>Set your own password after the admin gives you a temporary one.</p>
+        </article>
+        <article class="card">
+          <span class="pill">Planned</span>
+          <h3>Sections and terms</h3>
+          <p>More than one instructor per course, with sections and school terms.</p>
+        </article>
+        <article class="card">
+          <span class="pill">Planned</span>
+          <h3>Shared AI settings</h3>
+          <p>The admin sets how closely answers must match the modules, for everyone at once.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="final">
+      <h2>Ready to study?</h2>
+      <p>Log in with your BISU email, or create a student account in a minute.</p>
+      <a class="btn" href="login.html">Open LearnLink</a>
+    </section>
+  </main>
+
+  <footer>
+    <span>LearnLink · Bohol Island State University, Balilihan Campus</span>
+  </footer>
+</body>
+</html>

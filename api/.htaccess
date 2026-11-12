@@ -1,0 +1,5 @@
+# The API files are reachable; the helper files that start with _ are not.
+Require all granted
+<FilesMatch "^_">
+    Require all denied
+</FilesMatch>

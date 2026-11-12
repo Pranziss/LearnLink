@@ -1,0 +1,1029 @@
+/* ==========================================================================
+       1. Base CSS Variables & Theme Setup
+       ========================================================================== */
+
+:root {
+  --bg: #F6F7FA;
+  --s1: #E5E8EF;
+  --s2: #fff;
+  --tx: #0A1A45;
+  --t2: #4A5A85;
+  --t3: #65719A;
+  --bd: #D9DEEA;
+  --bd2: #BFC7DA;
+  --ac: #002583;
+  --acb: #E3E9FA;
+  --sh: #FFB800;
+  --pk: #FFF1C7;
+  --mt: #DDF3E7;
+  --sk: #E5E8EF;
+  --bt: #FFE08A;
+  --wb: #FFF1C7;
+  --wt: #6B4700;
+  --er: #C62828;
+  --erb: #FDE7E7;
+  --ok: #1B6E45;
+  --bl1: #FFE9A8;
+  --bl2: #CFD8F3;
+  --sbb: #002583;
+  --sbt: #fff;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0A1230;
+    --s1: #111C4A;
+    --s2: #0E1738;
+    --tx: #EEF1FA;
+    --t2: #AEB8D6;
+    --t3: #8591B8;
+    --bd: #1E2B62;
+    --bd2: #2F3F80;
+    --ac: #FFB800;
+    --acb: #1B2760;
+    --sh: #8A6500;
+    --pk: #3A3012;
+    --mt: #173A2E;
+    --sk: #18235A;
+    --bt: #5A4410;
+    --wb: #3A3012;
+    --wt: #FFD25E;
+    --er: #FF8F8F;
+    --erb: #3F1D24;
+    --ok: #7FE0AA;
+    --bl1: #2A2406;
+    --bl2: #122060;
+    --sbb: #0D2272;
+    --sbt: #EEF1FA;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0A1230;
+  --s1: #111C4A;
+  --s2: #0E1738;
+  --tx: #EEF1FA;
+  --t2: #AEB8D6;
+  --t3: #8591B8;
+  --bd: #1E2B62;
+  --bd2: #2F3F80;
+  --ac: #FFB800;
+  --acb: #1B2760;
+  --sh: #8A6500;
+  --pk: #3A3012;
+  --mt: #173A2E;
+  --sk: #18235A;
+  --bt: #5A4410;
+  --wb: #3A3012;
+  --wt: #FFD25E;
+  --er: #FF8F8F;
+  --erb: #3F1D24;
+  --ok: #7FE0AA;
+  --bl1: #2A2406;
+  --bl2: #122060;
+  --sbb: #0D2272;
+  --sbt: #EEF1FA;
+}
+
+/* ==========================================================================
+       2. Global Layout & Typography
+       ========================================================================== */
+
+html {
+  scroll-padding-top: env(safe-area-inset-top, 0px);
+  height: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--tx);
+  font: 14px/1.5 "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(460px 340px at 6% 8%, var(--bl1), transparent 70%), radial-gradient(520px 380px at 96% 92%, var(--bl2), transparent 70%);
+}
+
+h2,
+h3 {
+  font-weight: 800;
+  letter-spacing: -.01em;
+  margin: 0;
+}
+
+#root {
+  height: 100%;
+}
+
+#app {
+  display: flex;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.top {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.sc {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 22px 40px;
+}
+
+/* ==========================================================================
+       3. Sidebar Elements
+       ========================================================================== */
+
+#sb {
+  width: 236px;
+  flex-shrink: 0;
+  background: var(--sbb);
+  border-right: none;
+  color: var(--sbt);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+#sb .it {
+  color: var(--sbt);
+}
+
+#sb .it:hover {
+  background: rgba(255, 255, 255, .14);
+}
+
+#sb .it.on {
+  background: #FFB800;
+  color: #0A1A45;
+}
+
+#sb .sub .it {
+  color: rgba(255, 255, 255, .82);
+}
+
+#sb .sm,
+#sb .lbl {
+  color: rgba(255, 255, 255, .65);
+}
+
+#sb .it.on .sm {
+  color: rgba(10, 26, 69, .75);
+}
+
+#sb .p {
+  background: #FFB800;
+  color: #0A1A45;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, .25);
+}
+
+#sb div[style*="border-top"] {
+  border-top-color: rgba(255, 255, 255, .2) !important;
+}
+
+#sb input {
+  background: rgba(255, 255, 255, .95);
+  color: #0A1A45;
+  border-color: transparent;
+}
+
+.it {
+  padding: 8px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font-weight: 700;
+}
+
+.it:hover {
+  background: var(--acb);
+  transform: translateX(3px);
+}
+
+.it.on {
+  background: var(--pk);
+  color: var(--ac);
+}
+
+.lbl {
+  font-size: 12px;
+  color: var(--t3);
+  padding: 10px 10px 4px;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+       4. Form Inputs & Control Components
+       ========================================================================== */
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--s2);
+  border: 1.5px solid var(--bd2);
+  border-radius: 14px;
+  padding: 8px 10px;
+}
+
+button {
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s, background .2s, border-color .2s;
+}
+
+button:hover {
+  transform: translateY(-1px);
+  border-color: var(--ac);
+}
+
+button:active {
+  transform: scale(.93);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 1px;
+}
+
+.p {
+  background: var(--ac);
+  color: var(--bg);
+  border-color: transparent;
+  box-shadow: 0 3px 0 var(--sh);
+}
+
+.p:active {
+  transform: translateY(2px) scale(.98);
+  box-shadow: 0 1px 0 var(--sh);
+}
+
+.g {
+  border: none;
+  background: transparent;
+}
+
+.g:hover {
+  background: var(--s1);
+}
+
+.dng {
+  color: var(--er);
+  border-color: var(--er);
+}
+
+.dng.solid {
+  background: var(--er);
+  color: var(--bg);
+  border-color: transparent;
+}
+
+.sw {
+  width: 44px;
+  height: 25px;
+  border-radius: 99px;
+  padding: 0;
+  position: relative;
+  background: var(--bd2);
+  border: none;
+  flex-shrink: 0;
+}
+
+.sw::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .25s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+.sw.on {
+  background: var(--ac);
+}
+
+.sw.on::after {
+  transform: translateX(19px);
+}
+
+.seg {
+  display: flex;
+  gap: 2px;
+  background: var(--s1);
+  border-radius: 18px;
+  padding: 3px;
+  margin: 12px 0 14px;
+  overflow-x: auto;
+}
+
+.seg button {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 14px;
+  white-space: nowrap;
+}
+
+.seg .on {
+  background: var(--s2);
+  box-shadow: 0 2px 8px -3px rgba(0, 37, 131, .4);
+}
+
+/* ==========================================================================
+       5. Cards, Grids & Interactive Layouts
+       ========================================================================== */
+
+.card {
+  background: var(--s2);
+  border: 1.5px solid var(--bd);
+  border-radius: 20px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 20px -12px rgba(0, 37, 131, .35);
+  margin-bottom: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: var(--acb);
+  color: var(--ac);
+}
+
+button.chip {
+  border: none;
+}
+
+.chip.ok {
+  background: var(--mt);
+  color: var(--ok);
+}
+
+.chip.pr {
+  background: var(--bt);
+  color: var(--wt);
+}
+
+.chip.fl {
+  background: var(--erb);
+  color: var(--er);
+}
+
+.sm {
+  font-size: 12px;
+  color: var(--t3);
+}
+
+.er {
+  font-size: 12px;
+  color: var(--er);
+  min-height: 16px;
+  margin: 4px 0 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--bd);
+}
+
+.row:first-of-type {
+  border-top: none;
+}
+
+.bar {
+  height: 10px;
+  border-radius: 99px;
+  background: var(--s1);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--ac);
+  transition: width .5s;
+}
+
+.cg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.cg .card {
+  margin: 0;
+  transition: transform .2s cubic-bezier(.34, 1.56, .64, 1), box-shadow .2s;
+}
+
+.cg .card.click,
+.cg .stat {
+  cursor: pointer;
+}
+
+.cg .card.click:hover,
+.cg .stat:hover {
+  transform: translateY(-3px) scale(1.01);
+}
+
+.cg .card:nth-child(4n+1) {
+  background: var(--pk);
+}
+
+.cg .card:nth-child(4n+2) {
+  background: var(--acb);
+}
+
+.cg .card:nth-child(4n+3) {
+  background: var(--s1);
+}
+
+/* Popups, Dropdowns & Animations */
+
+.dd {
+  position: absolute;
+  top: 50px;
+  right: 12px;
+  width: 230px;
+  background: var(--s2);
+  border: 1.5px solid var(--bd);
+  border-radius: 18px;
+  padding: 6px;
+  z-index: 9;
+  animation: pop .22s;
+}
+
+.dd div {
+  padding: 8px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.dd div:hover {
+  background: var(--s1);
+}
+
+#toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 20px);
+  background: var(--tx);
+  color: var(--bg);
+  padding: 8px 16px;
+  border-radius: 99px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transition: all .3s cubic-bezier(.34, 1.56, .64, 1);
+  z-index: 70;
+}
+
+#toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.enter .sc > * {
+  animation: rise .4s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.enter .sc > *:nth-child(n+2) {
+  animation-delay: .05s;
+}
+
+.enter .sc > *:nth-child(n+4) {
+  animation-delay: .1s;
+}
+
+.enter .sc > *:nth-child(n+7) {
+  animation-delay: .15s;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: scale(.9);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ==========================================================================
+       6. Details Pop-ups, Clickable Rows & Charts
+       ========================================================================== */
+
+.stat {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-weight: inherit;
+}
+
+.stat:hover {
+  box-shadow: 0 14px 26px -14px rgba(0, 37, 131, .55);
+}
+
+.stat .hint {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ac);
+}
+
+.stat .hint::after {
+  content: " →";
+}
+
+.dl {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.dl.neg {
+  color: var(--er);
+}
+
+.big {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.big2 {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-top: 8px;
+}
+
+.mh {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin: 18px 0 4px;
+}
+
+.two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.two > .card {
+  margin: 0;
+}
+
+.rowb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  padding: 8px;
+  font-weight: 600;
+}
+
+.rowb:hover {
+  background: var(--s1);
+  transform: none;
+}
+
+.rowb:active {
+  transform: none;
+}
+
+.rowb .rl {
+  flex: 0 0 170px;
+  min-width: 0;
+}
+
+.rowb .bar {
+  flex: 1;
+  min-width: 50px;
+}
+
+.rowb .rv {
+  min-width: 44px;
+  text-align: right;
+}
+
+.rowb .ar {
+  color: var(--t3);
+}
+
+.rowb .sm {
+  font-weight: 500;
+}
+
+.rowd {
+  cursor: default;
+}
+
+.rowd:hover {
+  background: transparent;
+}
+
+.lnk {
+  border: none;
+  background: transparent;
+  color: var(--ac);
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.lnk:hover {
+  background: var(--s1);
+  transform: none;
+}
+
+.lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--t2);
+}
+
+.lg i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.mdb {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(10, 26, 69, .5);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  animation: fade .15s;
+}
+
+.mdl {
+  background: var(--s2);
+  border: 1.5px solid var(--bd);
+  border-radius: 24px;
+  padding: 20px;
+  width: min(500px, 100%);
+  max-height: calc(100% - 8px);
+  overflow-y: auto;
+  animation: pop .22s;
+}
+
+.mdl.wide {
+  width: min(640px, 100%);
+}
+
+.mdl:focus {
+  outline: none;
+}
+
+.qc {
+  display: flex;
+  gap: 6px;
+  height: 180px;
+  margin-top: 16px;
+}
+
+.qy {
+  position: relative;
+  width: 30px;
+  flex-shrink: 0;
+}
+
+.qy span {
+  position: absolute;
+  right: 0;
+  transform: translateY(50%);
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.qp {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.qg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--bd);
+  pointer-events: none;
+}
+
+.qb {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  gap: var(--qgap, 6px);
+}
+
+.qcol {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+}
+
+.qcol:hover,
+.qcol:focus-visible {
+  background: var(--acb);
+  transform: none;
+}
+
+.qcol:active {
+  transform: none;
+}
+
+.qs {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-radius: 6px 6px 2px 2px;
+  overflow: hidden;
+  min-height: 2px;
+}
+
+.qs i {
+  display: block;
+  width: 100%;
+}
+
+.qx {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.qxl {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--qgap, 6px);
+}
+
+.qxl span {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 11px;
+  color: var(--t3);
+  white-space: nowrap;
+}
+
+#tip {
+  position: fixed;
+  z-index: 60;
+  pointer-events: none;
+  background: var(--tx);
+  color: var(--bg);
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  opacity: 0;
+  transition: opacity .12s;
+  max-width: 220px;
+}
+
+.cst {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 10px 0 0;
+}
+
+.cst > span,
+.cst > button {
+  background: var(--s1);
+  border: none;
+  border-radius: 99px;
+  padding: 2px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--t2);
+}
+
+.cst > button:hover {
+  background: var(--acb);
+  transform: none;
+}
+
+.cst b {
+  color: var(--tx);
+}
+
+.chv {
+  width: 30px;
+  padding: 2px 0;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.frow {
+  flex-wrap: wrap;
+}
+
+.flash {
+  animation: flash 1.8s;
+}
+
+@keyframes flash {
+  0%,
+  100% {
+    box-shadow: 0 8px 20px -12px rgba(0, 37, 131, .35);
+  }
+  20%,
+  70% {
+    box-shadow: 0 0 0 3px var(--ac);
+  }
+}
+
+.tools {
+  padding: 12px 14px;
+}
+
+.tools > div {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+#msgs {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.ml {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-weight: 800;
+  text-align: left;
+  color: inherit;
+}
+
+.ml:hover {
+  color: var(--ac);
+  text-decoration: underline;
+  transform: none;
+  border: none;
+}
+
+.fl2 {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-weight: 600;
+  text-align: left;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fl2:hover {
+  color: var(--ac);
+  text-decoration: underline;
+  transform: none;
+  border: none;
+}
+
+.btnl {
+  display: inline-block;
+  padding: 8px 12px;
+  border: 1.5px solid var(--bd2);
+  border-radius: 14px;
+  font-weight: 700;
+  color: inherit;
+  text-decoration: none;
+  background: var(--s2);
+}
+
+.btnl:hover {
+  border-color: var(--ac);
+}
+
+.doc {
+  background: var(--s1);
+  border-radius: 14px;
+  padding: 12px 14px;
+  line-height: 1.7;
+}
+
+@media (max-width: 760px) {
+  #sb {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 7;
+  }
+  .sc {
+    padding: 4px 14px 40px;
+  }
+  .rowb .rl {
+    flex-basis: 110px;
+  }
+  .qc {
+    height: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

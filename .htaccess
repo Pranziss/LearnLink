@@ -1,0 +1,3 @@
+# Laragon (Apache) serves this whole folder. Only api/ may be opened from the browser:
+# .env, uploads, database/ and modules/ stay private. The pages themselves come from Node on port 3000.
+Require all denied

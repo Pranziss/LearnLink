@@ -1,0 +1,21 @@
+# Secrets (copy .env.example to .env)
+.env
+
+# Created at runtime
+logs/
+.cache/
+storage/uploads/*
+!storage/uploads/.gitkeep
+
+# Dependencies (none needed, but keep them out if added)
+node_modules/
+vendor/
+
+# Editor / OS clutter
+.vscode/*
+!.vscode/launch.json
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log
