@@ -12,32 +12,32 @@ var COL = {
 var CO = [
   [
     "GE PPC",
-    "Loraine Lacea",
+    "Liza Navarro",
     "BSIT 3C",
     ["What Is Popular Culture?", "Media and Society", "Filipino Pop Icons", "Social Media Trends"]
   ],
   [
     "Information Assurance",
-    "Raymond Cempron",
+    "Ramon Dizon",
     "BSIT 3C",
     ["Introduction to Information Assurance", "Security Principles", "Risk Management", "Cryptography Basics"]
   ],
   [
     "Prof Elec 2",
-    "John Val Nilo Fronteras",
+    "Jomar Villareal",
     "BSIT 3C",
     ["Web Architecture", "HTML and CSS Review", "Flexbox and Grid", "JavaScript Basics"]
   ],
   [
     "GE Ethics",
-    "Angelica Marie Laqui",
+    "Andrea Mae Salazar",
     "IT 3C",
     ["Foundations of Ethics", "Moral Theories", "Professional Ethics", "Ethics in Technology"]
   ],
-  ["IT 313", "Asuncion Paña", "BSIT 3", ["Course Overview", "Core Concepts", "Applications", "Case Studies"]],
+  ["IT 313", "Aurora Pineda", "BSIT 3", ["Course Overview", "Core Concepts", "Applications", "Case Studies"]],
   [
     "Research Methods",
-    "Catherine Leah Gabo",
+    "Carmela Reyes",
     "BSIT 3C",
     ["Research Basics", "Review of Literature", "Methodology", "Data Analysis"]
   ]
@@ -90,9 +90,12 @@ var IA = [
   }
 ];
 
+// "Module N: Title". Real courses carry each module's own number (c[5]), so hidden modules don't shift the count.
 function MT(c, m) {
-  return "Module " + (m + 1) + ": " + CO[c][3][m]
+  return "Module " + (CO[c][5] ? CO[c][5][m] : m + 1) + ": " + E(CO[c][3][m])
 }
+// The app is "live" inside login.html (real data); opened on its own with ?demo it shows the sample data.
+var LIVE = window.parent !== window;
 
 function C(c, m) {
   if (c === 1 && IA[m] && CO[1][0] === "Information Assurance") return IA[m];
@@ -376,10 +379,10 @@ function app() {
   var side = S.sb ? '<aside id="sb"><button class="p" onclick="newChat()" style="margin-bottom:10px">+ New chat</button><button class="it" onclick="S.srch=!S.srch;render()">Search chats</button>' +
     (S.srch ? '<input placeholder="Search your chats" value="' + E(S.sq) + '" style="width:100%;margin:2px 0 6px" oninput="S.sq=this.value;rec()"><div id="rec">' +
     recs() + "</div>" : "") + '<button class="it" onclick="S.cg=!S.cg;render()">Courses enrolled ' + (S.cg ? "▾" : "▸") +
-    "</button>" + (S.cg ? '<div class="sub">' + CO.map(function (c, i) {
+    "</button>" + (S.cg ? '<div class="sub">' + (CO.length ? CO.map(function (c, i) {
     return '<button class="it' + (S.v !== "home" && S.v !== "chat" && S.v !== "set" && S.ci === i ? " on" : "") +
-      '" onclick="openC(' + i + ')">' + c[0] + "</button>"
-  }).join("") + "</div>" : "") + '<div style="margin-top:auto;border-top:1px solid var(--bd);padding-top:8px"><button class="it' +
+      '" onclick="openC(' + i + ')">' + E(c[0]) + "</button>"
+  }).join("") : '<p class="sm" style="margin:4px 14px 8px">No courses yet. Courses appear here once your teacher sets them up.</p>') + "</div>" : "") + '<div style="margin-top:auto;border-top:1px solid var(--bd);padding-top:8px"><button class="it' +
     (S.v === "set" ? " on" : "") + '" onclick="lv(function(){S.v=\'set\';mob();render()})">Settings</button></div></aside>' : "";
   var tb = '<div class="top"><div style="display:flex;align-items:center;gap:8px"><button class="g" aria-label="Menu" onclick="S.sb=!S.sb;render()" style="font-size:18px">☰</button>' +
     bot(26) + '<b>LearnLink</b></div></div>';
@@ -579,13 +582,14 @@ function scope() {
 function courseV() {
   var c = CO[S.ci];
   return {
-    h: '<div class="sc"><h2 style="margin:6px 0 0">' + c[0] + '</h2><p class="sm" style="margin:0 0 14px">' +
-      c[1] + " · " + c[2] + '</p><p class="sm" style="margin:0 0 8px">Select modules to focus on, or leave none selected to use them all.</p>' +
+    h: '<div class="sc"><h2 style="margin:6px 0 0">' + E(c[0]) + '</h2><p class="sm" style="margin:0 0 14px">' +
+      [c[1] || "No instructor assigned yet", c[2]].filter(Boolean).map(E).join(" · ") + '</p>' +
+      (c[3].length ? '<p class="sm" style="margin:0 0 8px">Select modules to focus on, or leave none selected to use them all.</p>' :
+      '<div class="card"><b>No modules yet</b><p class="sm" style="margin:4px 0 0">Your teacher hasn’t published any modules for this course. Check back later.</p></div>') +
       c[3].map(function (t, i) {
       var o = S.sel.indexOf(i) > -1;
       return '<div class="mod' + (o ? " on" : "") + '" onclick="tg(' + i + ')"><div class="ck">' + (o ? "✓" : "") +
-        '</div><div style="flex:1;min-width:0"><b>' + MT(S.ci, i) + '</b><div class="sm">' + (i === 2 ? "PPTX · " +
-        (24 + i * 3) + " slides" : "PDF · " + (10 + i * 4) + " pages") + '</div></div><button style="font-size:12px;padding:4px 10px" onclick="event.stopPropagation();S.vm=' +
+        '</div><div style="flex:1;min-width:0"><b>' + MT(S.ci, i) + '</b></div><button style="font-size:12px;padding:4px 10px" onclick="event.stopPropagation();S.vm=' +
         i + ';render()">Open</button></div>'
     }).join("") + "</div>",
     x: '<div class="fl"><span class="chip n">Applies to ' + (S.sel.length ? S.sel.length + " selected module" +
@@ -649,8 +653,34 @@ function rm0(i) {
   render()
 }
 
+// Real module text (live mode): what LearnLink reads from the module's files, loaded once per module.
+var MTX = {};
+function viewerLive(ci, m, id) {
+  var d = MTX[id];
+  if (d === undefined) {
+    d = MTX[id] = "loading";
+    api("courses?action=module_text&id=" + id).then(function (j) { MTX[id] = j; render() }, function () { MTX[id] = "error"; render() });
+  }
+  var body = d === "loading" ? '<p class="sm">Loading the module…</p>' : d === "error" ? '<p class="sm">Couldn’t load this module. Try again in a moment.</p>' :
+    (d.text ? d.text.split(/\n{2,}/).map(function (p) {
+      // light markdown: **bold**, "- " bullets, "## headings"
+      var t = E(p).replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/^[-*]\s+/gm, "• ");
+      if (/^#{1,3}\s/.test(t)) return '<h4 style="margin:16px 0 8px">' + t.replace(/^#+\s*/, "") + "</h4>";
+      return '<p style="line-height:1.8;margin:0 0 12px">' + t.replace(/\n/g, "<br>") + "</p>"
+    }).join("") : '<p class="sm">This module has no readable text yet.</p>') +
+    (d.files.some(function (f) { return f.download }) ? '<div style="border-top:1px solid var(--bd);margin-top:16px;padding-top:12px"><b class="sm">Files</b>' +
+      d.files.filter(function (f) { return f.download }).map(function (f) {
+        return '<div style="margin-top:6px"><a href="/api/db/materials?action=download&id=' + f.id + '">' + E(f.name) + "</a></div>"
+      }).join("") + "</div>" : "");
+  return '<div class="vw"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bd)"><div><b>' +
+    MT(ci, m) + '</b><div class="sm">' + E(CO[ci][0]) + ' · the text LearnLink answers from</div></div><button class="g" aria-label="Close module" onclick="S.vm=null;S.vw=null;render()">✕</button></div>' +
+    '<div style="flex:1;overflow-y:auto;padding:24px;display:grid;place-items:start center"><div class="card" style="max-width:720px;width:100%;padding:22px">' + body + "</div></div></div>"
+}
+
 function viewer() {
-  var V = S.vw || { c: S.ci, m: S.vm, h: [] }, m = V.m, ci = V.c, s = C(ci, m).s;
+  var V = S.vw || { c: S.ci, m: S.vm, h: [] }, m = V.m, ci = V.c;
+  if (LIVE && CO[ci] && CO[ci][4]) return viewerLive(ci, m, CO[ci][4][m]);
+  var s = C(ci, m).s;
   return '<div class="vw"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bd)"><div><b>' +
     MT(ci, m) + '</b><div class="sm">' + CO[ci][0] + (V.h.length ? ' · highlighted sentences were used in the answer' : ' · mock preview') +
     '</div></div><button class="g" aria-label="Close module" onclick="S.vm=null;S.vw=null;render()">✕</button></div><div style="flex:1;overflow-y:auto;padding:24px;display:grid;place-items:start center"><div class="card" style="max-width:460px;width:100%;padding:22px"><h3 style="margin:0 0 12px">' +
@@ -672,7 +702,7 @@ function spaceV() {
   if (S.sp === "ask") {
     h += S.ch.map(function (m) {
       return '<div style="display:flex;justify-content:flex-end;margin:8px 0"><div style="background:var(--s1);border-radius:16px;padding:8px 14px">' +
-        E(m.u) + '</div></div><div style="display:flex;gap:10px;margin:10px 0 14px">' + bot(34) + '<div style="flex:1;min-width:0"><span class="chip">From your modules</span><p style="line-height:1.7">' +
+        E(m.u) + '</div></div><div style="display:flex;gap:10px;margin:10px 0 14px">' + bot(34) + '<div style="flex:1;min-width:0">' + (m.err ? '<span class="chip w">Couldn’t answer</span>' : '<span class="chip">From your modules</span>') + '<p style="line-height:1.7">' +
         m.a + '</p><div style="display:flex;gap:6px;flex-wrap:wrap">' + m.s.map(function (i) {
         return '<span class="chip n">' + MT(S.ci, i) + "</span>"
       }).join("") + "</div></div></div>"
@@ -681,7 +711,9 @@ function spaceV() {
     if (!S.ch.length && !S.tp) h += '<div class="card" style="text-align:center;padding:22px"><b>Ask about ' +
       (S.sel.length ? "the selected module" + (S.sel.length > 1 ? "s" : "") : "this course") + '</b><p class="sm">Answers come only from the modules in scope.</p><button onclick="sa(\'Summarize this\')">Summarize this</button></div>';
     h += '<div style="display:flex;gap:8px;margin-top:14px"><input id="ai" placeholder="Ask a question…" style="flex:1" onkeydown="if(event.key===\'Enter\')sa()"><button class="p" onclick="sa()">Ask</button></div>'
-  } else if (S.sp === "sum") h += sc.map(function (m) {
+  } else if (LIVE) h += '<div class="card" style="text-align:center;padding:24px"><span class="chip n">Coming soon</span><p style="margin:10px 0 0;line-height:1.6">' +
+    ({ sum: "Summaries", quiz: "Quizzes", fc: "Flashcards" })[S.sp] + ' made from your modules are on the way. For now, use <b>Ask</b>, for example “Summarize this module” or “Quiz me on this”.</p></div>';
+  else if (S.sp === "sum") h += sc.map(function (m) {
     return '<div class="card" style="margin-bottom:10px"><b>' + MT(S.ci, m) + '</b><ul style="padding-left:18px;line-height:1.7;margin:6px 0 0">' +
       C(S.ci, m).s.map(function (x) {
       return "<li>" + x + "</li>"
@@ -1278,7 +1310,8 @@ sa = function (t) {
       render()
     }
   }, 800);
-  if (window.parent !== window && S.on) {
+  // Live: always the real AI. If it fails, say so; never fall back to a sample answer.
+  if (LIVE) {
     var t0 = Date.now(), sc = scope();
     llm(v, CO[S.ci][0]).then(function (x) {
       setTimeout(function () {
@@ -1290,7 +1323,8 @@ sa = function (t) {
     }, function () {
       S.tp = null;
       BZ = 0;
-      _sa(v)
+      S.ch.push({ u: v, a: "LearnLink couldn’t write an answer right now. Check your connection, then try again.", s: [], err: 1 });
+      render()
     })
   } else setTimeout(function () {
     S.tp = null;
@@ -1659,10 +1693,14 @@ var chatId = null, HL = [], WHY = ["Missing source", "Doesn’t match my notes",
   "Something else"];
 
 // who is logged in -> profile fields used by the page
-function loadSession() {
+// strict (first load): errors are passed on, and no account means back to the login page.
+function loadSession(strict) {
   return api("auth?action=me").then(function (j) {
     var u = j.user;
-    if (!u) return;
+    if (!u) {
+      if (strict) throw { error: "not_logged_in" };
+      return;
+    }
     R.un = u.username || u.name;
     R.sid = u.student_id || "";
     R.em = (u.email || "").split("@")[0];
@@ -1671,33 +1709,29 @@ function loadSession() {
     R.yr = u.year_level || "";
     R.sec = u.section || "";
     render()
-  }, function () {})
+  }, function (e) { if (strict) throw e })
 }
-// courses and the published modules, from the database. Keeps the order the page already had.
-function loadCourses() {
+// Courses and their published modules, from the database:
+// [name, instructor, college, module titles, module ids, module numbers]. In live mode the real list always
+// replaces the sample one, even when it is empty.
+function loadCourses(strict) {
   return api("courses").then(function (j) {
-    var old = CO.map(function (c) {
-      return c[0]
-    }), rows = j.courses.map(function (c) {
+    var rows = j.courses.map(function (c) {
       return [
         c.name,
-        c.instructor || "Instructor",
+        c.instructor || "",
         c.college || "",
-        c.modules.map(function (m) {
-          return m.title
-        })
+        c.modules.map(function (m) { return m.title }),
+        c.modules.map(function (m) { return m.id }),
+        c.modules.map(function (m) { return m.position })
       ]
     });
-    rows.sort(function (a, b) {
-      var x = old.indexOf(a[0]), y = old.indexOf(b[0]);
-      return (x < 0 ? 99 : x) - (y < 0 ? 99 : y)
-    });
-    if (rows.length) {
+    if (LIVE || rows.length) {
       CO = rows;
       if (S.ci >= CO.length) S.ci = 0;
       render()
     }
-  }, function () {})
+  }, function (e) { if (strict) throw e })
 }
 
 function loadChats() {
@@ -1816,11 +1850,14 @@ function openChat(id) {
   })
 }
 
+// The page stays hidden (gate.js) until the account and real course list are in, so sample courses never flash.
 if (S.scr === "app") {
-  loadSession();
-  loadCourses();
+  if (LIVE) Promise.all([loadSession(true), loadCourses(true)]).then(LL_ready, function (e) {
+    LL_authError(e) ? LL_toLogin() : LL_fail();
+  });
+  else { loadSession(); loadCourses() }
   loadChats()
-}
+} else if (window.LL_ready) LL_ready();
 
 /* ===== Appearance: System / Light / Dark (saved on this device only) ===== */
 var THEMES = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];

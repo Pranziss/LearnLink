@@ -17,7 +17,7 @@ var CRS = [
     term: "1st Semester",
     st: "active",
     mod: 4,
-    s: [{ sec: "BSIT 3C", fac: "Raymond Cempron", stu: 41 }, { sec: "BSIT 3B", fac: "Raymond Cempron", stu: 38 }]
+    s: [{ sec: "BSIT 3C", fac: "Ramon Dizon", stu: 41 }, { sec: "BSIT 3B", fac: "Ramon Dizon", stu: 38 }]
   },
   {
     id: 2,
@@ -27,7 +27,7 @@ var CRS = [
     term: "1st Semester",
     st: "active",
     mod: 4,
-    s: [{ sec: "BSIT 3C", fac: "Catherine Leah Gabo", stu: 41 }]
+    s: [{ sec: "BSIT 3C", fac: "Carmela Reyes", stu: 41 }]
   },
   {
     id: 3,
@@ -37,7 +37,7 @@ var CRS = [
     term: "1st Semester",
     st: "active",
     mod: 4,
-    s: [{ sec: "BSIT 3C", fac: "John Val Nilo Fronteras", stu: 41 }]
+    s: [{ sec: "BSIT 3C", fac: "Jomar Villareal", stu: 41 }]
   },
   {
     id: 4,
@@ -47,7 +47,7 @@ var CRS = [
     term: "1st Semester",
     st: "active",
     mod: 4,
-    s: [{ sec: "BSCRIM 1B", fac: "Angelica Marie Laqui", stu: 44 }, { sec: "BSET 1A", fac: "Angelica Marie Laqui",
+    s: [{ sec: "BSCRIM 1B", fac: "Andrea Mae Salazar", stu: 44 }, { sec: "BSET 1A", fac: "Andrea Mae Salazar",
       stu: 36 }]
   },
   {
@@ -76,8 +76,8 @@ var REQ = [
   { n: "Mika Tan", t: "Export my data", d: "Oct 21", st: "new" }
 ];
 var AU = [
-  ["Oct 21, 3:40 PM", "Admin", "Assigned Catherine Leah Gabo to Research Methods BSIT 3C"],
-  ["Oct 20, 10:05 AM", "Admin", "Added faculty account johnval.fronteras"],
+  ["Oct 21, 3:40 PM", "Admin", "Assigned Carmela Reyes to Research Methods BSIT 3C"],
+  ["Oct 20, 10:05 AM", "Admin", "Added faculty account jomar.villareal"],
   ["Oct 19, 9:12 AM", "Admin", "Changed match level to 3"]
 ];
 var LB = ["Very loose", "Loose", "Balanced", "Strict", "Very strict"], TH = [.3, .45, .6, .75, .85], NAV = [
@@ -502,8 +502,8 @@ function ago(d) {
 var U = [
   {
     id: 1,
-    n: "Raymond Cempron",
-    e: "raymond.cempron@bisu.edu.ph",
+    n: "Ramon Dizon",
+    e: "ramon.dizon@bisu.edu.ph",
     r: "Faculty",
     st: "active",
     col: "CCIS",
@@ -513,8 +513,8 @@ var U = [
   },
   {
     id: 2,
-    n: "Catherine Leah Gabo",
-    e: "catherine.gabo@bisu.edu.ph",
+    n: "Carmela Reyes",
+    e: "carmela.reyes@bisu.edu.ph",
     r: "Faculty",
     st: "active",
     col: "CCIS",
@@ -524,8 +524,8 @@ var U = [
   },
   {
     id: 3,
-    n: "John Val Nilo Fronteras",
-    e: "johnval.fronteras@bisu.edu.ph",
+    n: "Jomar Villareal",
+    e: "jomar.villareal@bisu.edu.ph",
     r: "Faculty",
     st: "active",
     col: "CCIS",
@@ -535,8 +535,8 @@ var U = [
   },
   {
     id: 4,
-    n: "Angelica Marie Laqui",
-    e: "angelica.laqui@bisu.edu.ph",
+    n: "Andrea Mae Salazar",
+    e: "andrea.salazar@bisu.edu.ph",
     r: "Faculty",
     st: "active",
     col: "CTAS",

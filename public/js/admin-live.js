@@ -1,7 +1,7 @@
 /* ==========================================================================
        Admin page on the database (loaded after admin.js).
        When the server answers, users, courses, statistics and the audit log come from MySQL through
-       the PHP API, and every change is saved there. Opened on its own (no server), the sample data stays.
+       the PHP API, and every change is saved there. The sample data in admin.js is only shown in demo mode (?demo).
        Not stored in the database yet: course terms, sections, archiving, and the AI settings.
        ========================================================================== */
 S.live = false;
@@ -270,4 +270,5 @@ pv = function () {
     '<div class="card"><b>Students handle their own data</b><p class="sm" style="margin:2px 0 0">Under the Data Privacy Act, students can download everything LearnLink keeps about them, or delete their chats, from their own Settings page. Each download and deletion is recorded in the audit log, so there are no requests to approve here.</p></div>';
 };
 
-loadAll().catch(function () { /* no server: keep the sample data */ });
+// Sample data only in demo mode (?demo, see gate.js). Otherwise the page stays hidden until the real data is in.
+if (!window.LL_DEMO) loadAll().then(LL_ready, function (e) { LL_authError(e) ? LL_toLogin() : LL_fail(); });

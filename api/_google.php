@@ -7,8 +7,6 @@ const GC_SCOPES = [
     'openid', 'email',
     'https://www.googleapis.com/auth/classroom.courses.readonly',
     'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly',
-    'https://www.googleapis.com/auth/classroom.coursework.students.readonly',
-    'https://www.googleapis.com/auth/classroom.announcements.readonly',
     'https://www.googleapis.com/auth/classroom.topics.readonly',
     'https://www.googleapis.com/auth/classroom.rosters.readonly',     // the class list, so only enrolled students see the course
     'https://www.googleapis.com/auth/classroom.profile.emails',       // ...with their BISU emails
@@ -142,18 +140,14 @@ function gc_save_roster($courseId, $rows) {
     db()->commit();
 }
 
-// Every published post (materials, assignments, announcements) as [id, title, topicId, time, materials[], text].
+// Only the class's Materials (Classroom "Material" posts) are read. Assignments and announcements are never imported:
+// the AI should learn only from what teachers deliberately share as learning material.
+// Each post as [id, title, topicId, time, materials[], text].
 function gc_posts($token, $cid) {
     $b = gc_url('classroom') . '/v1/courses/' . rawurlencode($cid);
     $posts = [];
     foreach (gc_list($token, "$b/courseWorkMaterials?courseWorkMaterialStates=PUBLISHED", 'courseWorkMaterial') as $p)
         $posts[] = ['id' => 'm' . $p['id'], 'title' => $p['title'] ?? 'Material', 'topic' => $p['topicId'] ?? null, 'time' => $p['updateTime'] ?? $p['creationTime'] ?? null, 'materials' => $p['materials'] ?? [], 'text' => $p['description'] ?? ''];
-    foreach (gc_list($token, "$b/courseWork?courseWorkStates=PUBLISHED", 'courseWork') as $p)
-        $posts[] = ['id' => 'w' . $p['id'], 'title' => $p['title'] ?? 'Assignment', 'topic' => $p['topicId'] ?? null, 'time' => $p['updateTime'] ?? $p['creationTime'] ?? null, 'materials' => $p['materials'] ?? [], 'text' => $p['description'] ?? ''];
-    foreach (gc_list($token, "$b/announcements?announcementStates=PUBLISHED", 'announcements') as $p) {
-        $t = trim($p['text'] ?? '');
-        $posts[] = ['id' => 'a' . $p['id'], 'title' => $t === '' ? 'Announcement' : mb_strimwidth(preg_replace('/\s+/', ' ', $t), 0, 70, '…'), 'topic' => null, 'time' => $p['updateTime'] ?? $p['creationTime'] ?? null, 'materials' => $p['materials'] ?? [], 'text' => $t];
-    }
     return $posts;
 }
 function gc_topics($token, $cid) {
@@ -270,7 +264,7 @@ function gc_sync($courseId) {
             }
         }
         q('UPDATE classroom_links SET last_sync_at = NOW() WHERE course_id = ?', [$courseId]);
-        $msg = ($new ? "Found $new new item" . ($new > 1 ? 's' : '') . " · $drafts waiting for your review, $off not added" : 'Up to date · no new posts') . $rosterNote;
+        $msg = ($new ? "Found $new new item" . ($new > 1 ? 's' : '') . " · $drafts waiting for your review, $off not added" : 'Up to date · no new materials') . $rosterNote;
         gc_log($courseId, true, $msg);
         return ['ok' => true, 'message' => $msg, 'new' => $new, 'drafts' => $drafts];
     } catch (GcNetError $e) {

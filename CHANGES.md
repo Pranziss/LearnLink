@@ -1,5 +1,31 @@
 # Changes log
 
+## Nov 12, 2026: Classroom reads Materials only, and no more fake data
+
+No database change. Restart `npm start`, then press Ctrl + Shift + R.
+
+### Google Classroom: Materials only
+- **`api/_google.php`:** the sync reads only Classroom **Materials** (*Create → Material*). Assignments and announcements
+  are no longer read, and LearnLink no longer asks Google for permission to read them. Teachers who are already
+  connected don't need to reconnect.
+- **Classroom tab (`public/js/faculty-classroom.js`) and README:** tell teachers to post learning files as Materials.
+
+### Real data only (sample data only with `?demo`)
+- **New `public/js/gate.js`**, loaded first by the student, faculty and admin pages. Opened directly (not through the
+  login page), an app now goes to the login page instead of showing sample data that looked real. Add `?demo` to the
+  address (for example `/apps/admin.html?demo`) to see the sample data on purpose, with a red **DEMO · SAMPLE DATA** label.
+- **Faculty and admin:** not logged in, or the wrong role, goes to the login page. If the server can't be reached, a
+  "Can't reach LearnLink" screen appears instead of sample numbers. The admin page no longer flashes sample numbers while loading.
+- **Student:**
+  - **Open** on a module shows the **real module text** (the text the AI answers from) and download links for the original files.
+    The new `api/courses.php?action=module_text` returns it: published modules only, and only for courses the student can see.
+  - Removed the made-up "PDF · 10 pages" lines. Courses without an instructor say so. Empty courses and an empty course list have proper messages.
+  - The course-space **Ask** box shows an error when the AI can't answer, instead of a sample answer.
+  - **Summary, Quiz and Flashcards** say "Coming soon" instead of showing sample content.
+  - Module numbers match the teacher's numbering even when some modules are hidden.
+- **Downloads respect class lists:** `api/materials.php` no longer lets a student download files from a course hidden by its Classroom class list.
+- **Sample data uses made-up names** instead of real BISU faculty names and emails.
+
 ## Nov 12, 2026: cleanup for GitHub
 
 - **New `FILES.md`:** every file and what it does.

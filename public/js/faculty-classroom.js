@@ -1,7 +1,7 @@
 /* ==========================================================================
        Google Classroom sync
-       Teachers keep posting in Google Classroom. When the campus server has internet,
-       LearnLink copies new posts in as drafts; the teacher reviews them here and publishes
+       Teachers post learning files in Google Classroom as Materials. When the campus server has internet,
+       LearnLink copies new Materials in as drafts; the teacher reviews them here and publishes
        them into a module. Answering questions never needs the internet.
        With the server running this screen uses api/google.php ("live" block at the end).
        Opened on its own (no server), it shows the sample data below.
@@ -75,7 +75,7 @@ function gcTab() {
 
   if (!g.linked) {
     h += '<div style="margin-top:14px;padding:14px;border-radius:14px;background:var(--s1)"><b>Link this course to a Classroom class</b>' +
-      '<p class="sm" style="margin:2px 0 10px">Keep posting in Classroom as usual. New posts come here as drafts, and nothing reaches students until you publish it.</p>' +
+      '<p class="sm" style="margin:2px 0 10px">Keep posting in Classroom as usual. New Materials (in Classroom: Create → Material) come here as drafts. Assignments and announcements are not read, and nothing reaches students until you publish it.</p>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap"><select id="gcl" aria-label="Classroom class" style="flex:1;min-width:200px">' +
       GC.classes.map(function (x) {
         return '<option' + (x === c.n + " · " + c.s ? " selected" : "") + '>' + E(x) + '</option>';
@@ -88,8 +88,8 @@ function gcTab() {
     '<div class="card" style="margin:0"><div class="sm">Last checked</div><b>' + (GC.busy ? "Checking now…" : E(GC.last)) + '</b></div>' +
     '<div class="card" style="margin:0"><div class="sm">Waiting for review</div><b>' + g.drafts.length + ' material' + (g.drafts.length === 1 ? "" : "s") + '</b></div></div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="p" onclick="gcSync()"' + (GC.busy ? " disabled" : "") + '>' +
-    (GC.busy ? "Checking Classroom…" : "Check for new posts") + '</button><button onclick="gcUnlink()">Unlink class</button></div>' +
-    (GC.online ? "" : '<p class="sm" style="margin:10px 0 0;color:var(--er)">The campus server can’t reach the internet right now. Students can still ask questions; new Classroom posts will come in when the connection is back.</p>') +
+    (GC.busy ? "Checking Classroom…" : "Check for new materials") + '</button><button onclick="gcUnlink()">Unlink class</button></div>' +
+    (GC.online ? "" : '<p class="sm" style="margin:10px 0 0;color:var(--er)">The campus server can’t reach the internet right now. Students can still ask questions; new Classroom Materials will come in when the connection is back.</p>') +
     '</div>';
 
   // drafts
@@ -105,7 +105,7 @@ function gcTab() {
         return '<option value="' + mi + '"' + (mi === d.mi ? " selected" : "") + '>' + E(m.t) + '</option>';
       }).join("") + '</select>' +
       '<span style="display:flex;gap:6px"><button onclick="gcPrev(' + i + ')">Preview</button><button class="p" onclick="gcApprove(' + i + ')">Publish</button><button class="g" onclick="gcSkip(' + i + ')">Skip</button></span></div>';
-  }).join("") : '<p class="sm" style="margin:10px 0 0">You’re all caught up. New Classroom posts will show up here.</p>';
+  }).join("") : '<p class="sm" style="margin:10px 0 0">You’re all caught up. New Classroom Materials will show up here.</p>';
   h += '</div>';
 
   // skipped
@@ -157,8 +157,8 @@ function gcSync() {
   setTimeout(function () {
     GC.busy = false;
     GC.last = "Just now";
-    gcOf(C()).hist.unshift({ ok: 1, t: "Just now", d: "Up to date · no new posts" });
-    toast("Classroom checked. No new posts.");
+    gcOf(C()).hist.unshift({ ok: 1, t: "Just now", d: "Up to date · no new materials" });
+    toast("Classroom checked. No new materials.");
     render();
   }, 1400);
 }
@@ -332,7 +332,7 @@ gcTab = function () {
   if (!st.connected) {
     var local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname), needLocal = /\/\/(localhost|127\.0\.0\.1)[:/]/.test(st.redirect || "");
     h += '<div style="margin-top:14px;padding:14px;border-radius:14px;background:var(--s1)"><b>Connect your BISU Google account</b>' +
-      '<p class="sm" style="margin:2px 0 10px">LearnLink will only read the classes you teach and the files you post in them. Keep posting in Classroom as usual.</p>' +
+      '<p class="sm" style="margin:2px 0 10px">LearnLink will only read the classes you teach and the Materials you post in them (not assignments or announcements). Keep posting in Classroom as usual.</p>' +
       (needLocal && !local ? '<p class="sm" style="margin:0 0 10px;color:var(--er)">Google only allows this step on the LearnLink server itself. Open <b>http://localhost:' + E(location.port || "3000") + '</b> on the server PC, log in, and connect once. After that, everything works from any device.</p>' : "") +
       '<button class="p" onclick="gcConnect()"' + (needLocal && !local ? " disabled" : "") + '>Connect Google account</button></div></div>';
     if (!d.link) return h + gcHowLive();
@@ -341,7 +341,7 @@ gcTab = function () {
   if (!d.link) {
     if (!GC.cls) { api("google?action=classes").then(function (j) { GC.cls = j.classes; render(); }, function (e) { GC.cls = []; gcFail(e); render(); }); }
     h += '<div style="margin-top:14px;padding:14px;border-radius:14px;background:var(--s1)"><b>Link this course to a Classroom class</b>' +
-      '<p class="sm" style="margin:2px 0 10px">New posts come here as drafts, and nothing reaches students until you publish it.</p>' +
+      '<p class="sm" style="margin:2px 0 10px">New Materials (in Classroom: Create → Material) come here as drafts. Assignments and announcements are not read, and nothing reaches students until you publish it.</p>' +
       (!GC.cls ? '<p class="sm">Loading your classes…</p>' : !GC.cls.length ? '<p class="sm">No active Classroom classes found where you are a teacher.</p>' :
       '<div style="display:flex;gap:8px;flex-wrap:wrap"><select id="gcl" aria-label="Classroom class" style="flex:1;min-width:200px">' + GC.cls.map(function (x) {
         return '<option value="' + EA(x.id) + '"' + (x.name.toLowerCase().indexOf(c.n.toLowerCase()) > -1 ? " selected" : "") + '>' + E(x.name) + '</option>';
@@ -356,8 +356,8 @@ gcTab = function () {
     '<div class="card" style="margin:0"><div class="sm">Last checked</div><b>' + (GC.busy ? "Checking now…" : E(gcWhen(d.link.last_sync_at))) + '</b><div class="sm">Every ' + st.every + ' minutes while online</div></div>' +
     '<div class="card" style="margin:0"><div class="sm">Waiting for review</div><b>' + drafts.length + ' material' + (drafts.length === 1 ? "" : "s") + '</b><div class="sm">' + d.published + ' published so far</div></div></div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="p" onclick="gcSyncLive()"' + (GC.busy || !st.connected ? " disabled" : "") + '>' +
-    (GC.busy ? "Checking Classroom…" : "Check for new posts") + '</button><button onclick="gcUnlinkLive()">Unlink class</button></div>' +
-    (st.online ? "" : '<p class="sm" style="margin:10px 0 0;color:var(--er)">The server can’t reach the internet right now. Students can still ask questions; new Classroom posts will come in when the connection is back.</p>') + '</div>';
+    (GC.busy ? "Checking Classroom…" : "Check for new materials") + '</button><button onclick="gcUnlinkLive()">Unlink class</button></div>' +
+    (st.online ? "" : '<p class="sm" style="margin:10px 0 0;color:var(--er)">The server can’t reach the internet right now. Students can still ask questions; new Classroom Materials will come in when the connection is back.</p>') + '</div>';
 
   h += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span><b>New from Classroom</b><div class="sm">Choose the module for each one, then publish. Students only see what you publish.</div></span>' +
     (drafts.length > 1 && c.mods.length ? '<button onclick="gcPublishAll()">Publish all ' + drafts.length + '</button>' : "") + '</div>';
@@ -370,7 +370,7 @@ gcTab = function () {
       '<select id="gm' + x.id + '" aria-label="Module for ' + EA(x.title) + '" onchange="gcSetModule(' + x.id + ',+this.value)" style="flex:1 1 200px;min-width:0">' +
       c.mods.map(function (m) { return '<option value="' + m.id + '"' + (m.id === x.module_id ? " selected" : "") + '>' + E(m.t) + (m.pub ? "" : " (hidden)") + '</option>'; }).join("") + '</select>' +
       '<span style="display:flex;gap:6px"><button onclick="gcPrevLive(' + x.id + ')">Preview</button><button class="p" onclick="gcPublishLive(' + x.id + ')"' + (c.mods.length ? "" : " disabled") + '>Publish</button><button class="g" onclick="gcSkipLive(' + x.id + ')">Skip</button></span></div>';
-  }).join("") : '<p class="sm" style="margin:10px 0 0">You’re all caught up. New Classroom posts will show up here.</p>';
+  }).join("") : '<p class="sm" style="margin:10px 0 0">You’re all caught up. New Classroom Materials will show up here.</p>';
   h += '</div>';
 
   if (off.length) h += '<div class="card"><b>Not added</b><div class="sm">LearnLink can only answer from text. These stay in Classroom.</div>' + off.map(function (x) {

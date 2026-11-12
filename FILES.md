@@ -86,6 +86,7 @@ starting content imported by `setup.php`. Each course is a folder of numbered ma
 | `css/student.css` | Styles for the student app (light and dark). |
 | `css/faculty.css` | Styles for the faculty app. |
 | `css/admin.css` | Styles for the admin app. |
+| `js/gate.js` | Loaded first by the three app pages. Opened directly, they go to the login page; `?demo` shows the sample data with a DEMO label. Hides the page until real data has loaded, and shows "Can't reach LearnLink" if the server is down. |
 | `js/login.js` | Login, Google button, two-step sign-up, forgot-password flow. |
 | `js/student.js` | Whole student app: chat with streamed answers and citations, ratings, history, course spaces, settings (photo, appearance, password, export / delete my data). |
 | `js/faculty.js` | Faculty app: courses, modules and uploads, Insights charts, home page. Shows sample data only when opened without the server. |

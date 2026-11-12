@@ -35,6 +35,18 @@ if ($act === 'list') {
     out(['courses' => $courses]);
 }
 
+// One module's text, as the AI reads it, plus its files. Students: published modules of courses they can see.
+if ($act === 'module_text') {
+    $m = q('SELECT id, course_id, position, title, published FROM modules WHERE id = ?', [(int)($_GET['id'] ?? 0)])->fetch();
+    if (!$m) fail('not_found', 404);
+    $ok = $u['role'] === 'student' ? $m['published'] && student_can_see($u, $m['course_id']) : can_manage($u, $m['course_id']);
+    if (!$ok) fail('forbidden', 403);
+    $files = q('SELECT id, original_name AS name, (stored_name IS NOT NULL) AS has_original, extracted_text FROM materials WHERE module_id = ? AND status = "ready" ORDER BY id', [$m['id']])->fetchAll();
+    out(['title' => $m['title'], 'position' => (int)$m['position'],
+         'text' => implode("\n\n", array_filter(array_map(fn($f) => trim((string)$f['extracted_text']), $files))),
+         'files' => array_map(fn($f) => ['id' => (int)$f['id'], 'name' => $f['name'], 'download' => (bool)$f['has_original']], $files)]);
+}
+
 if ($u['role'] === 'student') fail('forbidden', 403);
 
 if ($act === 'create_course') {

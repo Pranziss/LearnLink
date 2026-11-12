@@ -11,7 +11,7 @@ $MAX = 25 * 1048576;
 if ($act === 'download') {                 // students may only open files of published modules
     $m = q('SELECT m.original_name, m.stored_name, m.mime, d.course_id, d.published FROM materials m JOIN modules d ON d.id = m.module_id WHERE m.id = ?', [$_GET['id'] ?? 0])->fetch();
     if (!$m || !$m['stored_name']) fail('not_found', 404);
-    if ($u['role'] === 'student' ? !$m['published'] : !can_manage($u, $m['course_id'])) fail('forbidden', 403);
+    if ($u['role'] === 'student' ? !$m['published'] || !student_can_see($u, $m['course_id']) : !can_manage($u, $m['course_id'])) fail('forbidden', 403);
     $file = "$ROOT/storage/uploads/{$m['course_id']}/{$m['stored_name']}";
     if (!is_file($file)) fail('file_missing', 404);
     header('Content-Type: ' . ($m['mime'] ?: 'application/octet-stream'));

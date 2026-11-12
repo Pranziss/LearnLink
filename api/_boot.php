@@ -35,6 +35,11 @@ function need(...$roles) {
 function audit($u, $text) {
     q('INSERT INTO audit_log (user_id, actor, action) VALUES (?,?,?)', [$u['id'] ?? null, $u ? ucfirst($u['role']) . ' · ' . $u['name'] : 'System', mb_substr($text, 0, 255)]);
 }
+// Students see a course unless it is linked to a Classroom class list they are not on (same rule as the course list).
+function student_can_see($u, $courseId) {
+    return !q('SELECT 1 FROM classroom_roster WHERE course_id = ? LIMIT 1', [$courseId])->fetch()
+        || q('SELECT 1 FROM classroom_roster WHERE course_id = ? AND email = ?', [$courseId, $u['email']])->fetch();
+}
 // Faculty manage only their own courses. Admin manages all.
 function can_manage($u, $courseId) {
     if ($u['role'] === 'admin') return true;

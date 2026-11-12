@@ -1666,13 +1666,14 @@ fileOpen = function (mi, fi) {
 };
 
 // sign in state from the server, then the real course list.
-// The sample data is shown only when the page is opened without the server (for design reviews).
-api("auth?action=me").then(function (j) {
-  if (!j.user || j.user.role === "student") return render();
+// The sample data above is shown only in demo mode (?demo, see gate.js). Otherwise: real data, the login page, or an error.
+if (window.LL_DEMO) render();
+else api("auth?action=me").then(function (j) {
+  if (!j.user || j.user.role === "student") return LL_toLogin();
   S.currentUser = { name: j.user.name, email: j.user.email };
-  return refresh(function () { CS.length ? render() : noCourses(j.user); });
-}).catch (function () {
-  render();      /* no server: show the sample data */
+  return refresh(function () { CS.length ? render() : noCourses(j.user); LL_ready(); });
+}).catch (function (e) {
+  LL_authError(e) ? LL_toLogin() : LL_fail();
 });
 
 // A teacher with no course assigned yet: say so instead of showing sample data.

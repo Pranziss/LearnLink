@@ -56,7 +56,8 @@ If the embedding model is missing, retrieval falls back to keywords only and the
 1. Make a folder `modules/<course-id>/` and put numbered `.md` files in it (`1-intro.md`, `2-...md`). Start each file
    with `# Module N: Title`. Separate paragraphs with a blank line.
 2. Add the course to `modules/courses.json` (`name` and `college`).
-3. Add the course to the course list in `public/apps/student.html` (the `CO` array), then restart.
+3. Run `php database/setup.php` on a fresh database to import it, or (easier) create the course on the admin page
+   and let the teacher upload the modules. Students see courses from the database automatically.
 
 Note: the **IT 313** files are placeholders ("Sample content... replace this file"). Replace them with the real modules.
 
@@ -90,7 +91,9 @@ Do not use the "uncensored" or "abliterated" models for a school system.
 
 ## Not done yet (be honest about these in the paper)
 
-- **Course-space Summary, Quiz and Flashcards** still show sample content. Only chat answers (Ask) use real retrieval.
+- **Course-space Summary, Quiz and Flashcards** are not built yet; they say "Coming soon". Only chat answers (Ask) use real retrieval.
+- **Sample data** (the original design screens) is only shown when an app page is opened with `?demo`, for example
+  `http://localhost:3000/apps/admin.html?demo`. It carries a red "DEMO · SAMPLE DATA" label.
 - **AI settings on the admin page** (match level, general answers) only affect that admin's own browser. They are not
   saved on the server. `ALLOW_GENERAL` in `.env` is what really decides whether general answers are allowed.
 - **Sections and terms**: the database has one instructor per course and no sections or terms. The admin page shows
@@ -120,10 +123,11 @@ Do not use the "uncensored" or "abliterated" models for a school system.
 
 Teachers connect their BISU Google account once, link each LearnLink course to one of their Classroom classes, and
 then keep posting in Classroom. Every `SYNC_MINUTES` (default 30) while the server has internet, LearnLink reads new
-posts (materials, assignments, announcements) and their attachments:
+**Materials** (in Classroom: *Create → Material*) and their attachments. **Assignments and announcements are never
+read**, so only what teachers deliberately share as learning material reaches the AI.
 
-- PDF, PPTX, DOCX, TXT/MD files and Google Docs/Slides become **drafts** with the text already extracted. A long post
-  description becomes a draft too. Nothing reaches students until the teacher clicks **Publish** in the Classroom tab.
+- PDF, PPTX, DOCX, TXT/MD files and Google Docs/Slides become **drafts** with the text already extracted. A long
+  Material description becomes a draft too. Nothing reaches students until the teacher clicks **Publish** in the Classroom tab.
 - YouTube videos, links, Google Forms, Sheets, images and scanned PDFs are listed under **Not added** with the reason.
 - If the internet is down, the sync is skipped and logged. Students' answers never depend on it.
 
