@@ -1,5 +1,5 @@
 /* LearnLink student app, part 2: sign-up (Google or a code, then your details). */
-/* auth */
+
 function fld(id, l, t, ph, h) {
   return '<label for="' + id + '">' + l + '</label><input id="' + id + '" type="' + (t || "text") + '" placeholder="' +
     (ph || "") + '" value="' + E(R[id] || "") + '" style="width:100%" oninput="$(\'e\').textContent=\'\'">' +
@@ -14,37 +14,7 @@ function sel(id, l, o, ph) {
   }).join("") + "</select>"
 }
 
-function gather() {
-  ["un", "sid", "em", "col", "prg", "yr", "sec", "pw"].forEach(function (k) {
-    var e = $(k);
-    if (e) R[k] = e.value.trim()
-  })
-}
-
-function startV() {
-  typed = false;
-  code = String(Math.floor(1e5 + Math.random() * 9e5));
-  T.push(setTimeout(function () {
-    $("vs").textContent = "Code sent to " + R.em;
-    var n = $("nt");
-    n.style.display = "block";
-    n.innerHTML = "<b>New email from LearnLink</b><br>Your verification code is <b>" + code + "</b>"
-  }, 1000));
-  T.push(setTimeout(function () {
-    if (typed) return;
-    $("vs").textContent = "Code detected. Verifying…";
-    var b = D.querySelectorAll("#bx input");
-    code.split("").forEach(function (d, i) {
-      T.push(setTimeout(function () {
-        b[i].value = d
-      }, i * 90))
-    });
-    T.push(setTimeout(vfy, 800))
-  }, 2600))
-}
-
 function cin(el) {
-  typed = true;
   el.value = el.value.replace(/\D/g, "");
   var b = [].slice.call(D.querySelectorAll("#bx input")), i = b.indexOf(el);
   if (el.value && i < 5) b[i + 1].focus();
@@ -53,50 +23,7 @@ function cin(el) {
   })) vfy()
 }
 
-function vfy() {
-  var b = [].slice.call(D.querySelectorAll("#bx input")), v = b.map(function (x) {
-    return x.value
-  }).join("");
-  if (v === code) {
-    clr();
-    $("vs").textContent = "Creating your account…";
-    api("auth?action=register", {
-      username: R.un,
-      email: R.em,
-      password: R.pw,
-      student_id: R.sid,
-      college: R.col,
-      program: R.prg,
-      year_level: R.yr,
-      section: R.sec
-    }).then(function () {
-      $("vs").textContent = "Verified";
-      T.push(setTimeout(function () {
-        S.auto = true;
-        go("login")
-      }, 900))
-    }, function (x) {
-      var m = {
-        email_taken: "That email already has an account. Log in instead.",
-        username_taken: "That username is taken. Pick another one.",
-        weak_password: "Use at least 8 characters with a letter and a number"
-      }[x && x.error] || "Could not create the account. Is the server (and MySQL) running?";
-      S.st = 1;
-      render();
-      $("e").textContent = m
-    })
-  } else {
-    $("e").textContent = "That code doesn’t match. Check your email and try again."
-  }
-}
-
-function login() {
-  return '<div class="au"><div class="card"><h2 style="margin:0;text-align:center">Welcome back</h2><p class="sm" style="text-align:center;margin:2px 0 0">Logging you in with your account.</p><label>Username or email</label><input style="width:100%" readonly value="' +
-    E(R.un || "maria_santos") + '"><label>Password</label><input type="password" style="width:100%" readonly value="' +
-    E(R.pw || "demo1234") + '"><button id="lb" class="p" style="width:100%;margin-top:16px" onclick="clr();S.v=\'home\';go(\'app\')">Log in</button></div></div>'
-}
-var STEPS = ["terms", "account", "school", "photo", "pass", "verify"], TN = ["Terms", "Account", "School",
-  "Photo", "Password", "Verify"], AGS = [
+var AGS = [
   ["Terms of Use", "I will use LearnLink for my own studies and keep my account to myself."],
   [
     "Data Privacy (RA 10173)",
@@ -107,81 +34,6 @@ var STEPS = ["terms", "account", "school", "photo", "pass", "verify"], TN = ["Te
     "I will use modules for my own learning and not copy or share them outside LearnLink."
   ]
 ];
-
-function dots() {
-  return '<div style="display:flex;gap:6px;margin-bottom:16px">' + TN.map(function (x, i) {
-    var d = i + 1 < S.st, c = i + 1 === S.st;
-    return '<div style="flex:1;text-align:center;font-size:11px;color:' + (c ? "var(--ac)" : "var(--t3)") +
-      '"><div style="height:4px;border-radius:2px;background:' + (d || c ? "var(--ac)" : "var(--bd)") + ';margin-bottom:4px"></div>' +
-      x + "</div>"
-  }).join("") + "</div>"
-}
-
-function reg() {
-  var K = STEPS[S.st - 1], b = "";
-  if (!R.ag) R.ag = [0, 0, 0];
-  if (K === "terms") b = '<h2 style="margin:0">Before we start</h2><p class="sm" style="margin:2px 0 8px">Please read and agree to continue.</p>' +
-    AGS.map(function (a, i) {
-    return '<label style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1.5px solid var(--bd);border-radius:14px;margin:8px 0;cursor:pointer;font-size:13px;color:var(--tx)"><input type="checkbox"' +
-      (R.ag[i] ? " checked" : "") + ' style="width:18px;height:18px;margin-top:2px;padding:0;flex-shrink:0" onchange="R.ag[' +
-      i + ']=this.checked;$(\'e\').textContent=\'\'"><span><b>' + a[0] + '</b><br><span style="color:var(--t2)">' +
-      a[1] + "</span></span></label>"
-  }).join("") + '<a href="#" onclick="R.ag=[1,1,1];render();return false" style="font-size:13px;color:var(--ac);font-weight:700">Agree to all</a>';
-  else if (K === "account") b = '<h2 style="margin:0">Create your account</h2>' + fld("un", "Username",
-    "text", "maria_santos", "4 to 20 letters, numbers, or underscores") + fld("sid", "Student ID", "text",
-    "2024-00123") + '<label for="em">School email</label><input id="em" type="email" inputmode="email" autocomplete="off" placeholder="name@bisu.edu.ph" value="' +
-    E(R.em) + '" style="width:100%" oninput="emIn(this)" onblur="emDone(this)"><p class="sm" style="margin:4px 0 0">Only BISU emails are accepted. Type your name and we’ll add @bisu.edu.ph.</p>';
-  else if (K === "school") {
-    var pr = COL[R.col] || [];
-    b = '<h2 style="margin:0">Your school info</h2><p class="sm" style="margin:2px 0 0">BISU Balilihan Campus</p>' +
-      sel("col", "College", Object.keys(COL), "Select your college") + sel("prg", "Program", pr, pr.length ? "Select your program" : "Select a college first") +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div>' + sel("yr", "Year level", ["1st year",
-      "2nd year", "3rd year", "4th year"], "Select") + "</div><div>" + sel("sec", "Section", ["A", "B", "C",
-      "D", "E", "F"], "Select") + "</div></div>"
-  } else if (K === "photo") b = '<h2 style="margin:0;text-align:center">Add a profile photo</h2><p class="sm" style="text-align:center;margin:2px 0 16px">Optional. You can add or change it later in Settings.</p><div style="text-align:center">' +
-    photoBox(132) + photoBtn() + "</div>";
-  else if (K === "pass") b = '<h2 style="margin:0">Set a password</h2>' + fld("pw", "Password", "password",
-    "", "At least 8 characters with a letter and a number") + fld("pw2", "Confirm password", "password");
-  else b = '<h2 style="margin:0;text-align:center">Verify your email</h2><p id="vs" class="sm" style="text-align:center;margin:4px 0 12px">Sending code…</p><div id="nt" style="display:none;background:var(--acb);color:var(--ac);padding:10px 12px;border-radius:12px;margin-bottom:12px;font-size:13px"></div><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px" id="bx">' +
-    "<input class=\"cb\" inputmode=\"numeric\" maxlength=\"1\" oninput=\"cin(this)\">".repeat(6) + '</div><p class="sm" style="text-align:center;margin-top:10px">We fill the code in for you. You can also type it.</p>';
-  return '<div class="au"><div class="card">' + dots() + b + '<p class="er" id="e"></p><div style="display:flex;gap:8px;margin-top:10px">' +
-    (S.st > 1 ? '<button style="flex:1" onclick="gather();S.st--;clr();render()">Back</button>' : "") + (S.st < 6 ? '<button class="p" style="flex:2" onclick="nxt()">' +
-    (K === "terms" ? "I agree and continue" : K === "photo" ? (R.ph ? "Continue" : "Skip for now") : K === "pass" ? "Send code" : "Continue") +
-    "</button>" : "") + "</div>" + (S.st === 1 ? '<p class="sm" style="text-align:center;margin-top:14px">Already have an account? <a href="#" onclick="R.un=R.un||\'maria_santos\';R.pw=R.pw||\'demo1234\';go(\'login\');return false" style="color:var(--ac)">Log in</a></p>' : "") +
-    "</div></div>"
-}
-
-function nxt() {
-  gather();
-  var K = STEPS[S.st - 1], e = "";
-  if (K === "terms") {
-    if (!R.ag || R.ag.some(function (x) {
-      return !x
-    })) e = "Please agree to all three to continue"
-  } else if (K === "account") {
-    if (!/^\w{4,20}$/.test(R.un)) e = "Use 4 to 20 letters, numbers, or underscores";
-    else if (R.sid.length < 5) e = "Enter your student ID, like 2024-00123";
-    else {
-      if (R.em && R.em.indexOf("@") < 0) {
-        R.em += "@bisu.edu.ph";
-        $("em").value = R.em
-      }
-      if (!R.em) e = "Enter your BISU email";
-      else if (!/^[^\s@]+@bisu\.edu\.ph$/i.test(R.em)) e = "Only BISU emails are accepted. Use name@bisu.edu.ph"
-    }
-  } else if (K === "school") {
-    if (!R.col || !R.prg || !R.yr || !R.sec) e = "Select your college, program, year, and section"
-  } else if (K === "pass") {
-    if (!/^(?=.*[A-Za-z])(?=.*\d).{8,}$/.test(R.pw)) e = "Use at least 8 characters with a letter and a number";
-    else if ($("pw2").value !== R.pw) e = "Passwords don’t match. Try again"
-  }
-  if (e) {
-    $("e").textContent = e;
-    return
-  }
-  S.st++;
-  render()
-}
 
 function emIn(el) {
   $("e").textContent = "";
@@ -233,23 +85,23 @@ function gStart() {
   top.location.href = "/api/db/auth?action=google_start&for=signup";
 }
 
-dots = function () {
+function dots() {
   var n = ["Verify your email", "Your details"];
   return '<div style="display:flex;gap:6px;margin-bottom:16px">' + n.map(function (x, i) {
     var d = i + 1 < S.st, c = i + 1 === S.st;
     return '<div style="flex:1;text-align:center;font-size:12px;color:' + (c ? "var(--ac)" : "var(--t3)") +
       '"><div style="height:4px;border-radius:2px;background:' + (d || c ? "var(--ac)" : "var(--bd)") + ';margin-bottom:4px"></div>' + x + "</div>";
   }).join("") + "</div>";
-};
+}
 
-gather = function () {
+function gather() {
   ["nm", "sid", "em", "col", "prg", "yr", "sec", "pw", "pw2"].forEach(function (k) {
     var e = $(k);
     if (e) R[k] = e.value.trim();
   });
-};
+}
 
-reg = function () {
+function reg() {
   var b = "", foot = "";
   S.st = R.vem ? 2 : 1;
   if (S.st === 1) {
@@ -297,7 +149,7 @@ reg = function () {
     (S.st === 1 ? '<p class="sm" style="text-align:center;margin-top:14px">Already have an account? <a href="#" onclick="parent.postMessage(\'logout\',\'*\');return false" style="color:var(--ac)">Log in</a></p>' :
       '<p class="sm" style="text-align:center;margin-top:14px">Not you? <a href="#" onclick="R.vem=\'\';GS.sent=false;render();return false" style="color:var(--ac)">Start over</a></p>') +
     "</div></div>";
-};
+}
 
 function askCode() {
   gather();
@@ -325,7 +177,7 @@ function askCode() {
   });
 }
 
-vfy = function () {
+function vfy() {
   var b = [].slice.call(D.querySelectorAll("#bx input")), v = b.map(function (x) {
     return x.value;
   }).join("");
@@ -344,7 +196,7 @@ vfy = function () {
     b[0].focus();
     $("e").textContent = regErr(x) + (x && x.error === "bad_code" && x.left > 0 ? " (" + x.left + " tr" + (x.left === 1 ? "y" : "ies") + " left)" : "");
   });
-};
+}
 
 function mkAcct() {
   gather();

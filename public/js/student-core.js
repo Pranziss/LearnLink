@@ -173,7 +173,7 @@ var S = {
   nm: false,
   sim: null
 }, R = { un: "", sid: "", em: "", col: "", prg: "", yr: "", sec: "", pw: "" }, CH = [], MS = [], H = [],
-  last = null, T = [], cd = null, code = "", typed = false;
+  last = null, T = [], cd = null;
 
 function clr() {
   T.forEach(clearTimeout);
@@ -191,27 +191,13 @@ function render() {
     S.ch.length, S.pn, S.sb].join("|");
   r.className = k !== window.K ? "enter" : "";
   window.K = k;
-  if (S.scr === "reg") r.innerHTML = reg();
-  else if (S.scr === "login") r.innerHTML = login();
-  else r.innerHTML = app();
+  r.innerHTML = S.scr === "reg" ? reg() : app();
   after()
 }
 
 function after() {
   var m = $("msgs");
   if (m) m.scrollTop = m.scrollHeight;
-  if (S.scr === "reg" && S.st === 6) startV();
-  if (S.scr === "login" && S.auto) {
-    S.auto = false;
-    T.push(setTimeout(function () {
-      var b = $("lb");
-      if (b) b.textContent = "Logging you in…"
-    }, 900));
-    T.push(setTimeout(function () {
-      S.v = "home";
-      go("app")
-    }, 1900))
-  }
 }
 
 function name() {

@@ -149,8 +149,10 @@ function hist() {
   });
   return h.slice(-8)
 }
-// Turn the model's text into safe HTML. [1] becomes a button that opens that source.
+// Turn the model's text into safe HTML. [1] becomes a button that opens that source. **bold** and *italics* marks are
+// dropped (the server does the same to the finished answer; this covers the words still streaming in).
 function pbody(text, mi, caret) {
+  text = String(text).replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");
   return E(text).replace(/\n+/g, "<br>").replace(/\[(\d+)\]/g, function (a, n) {
     return mi >= 0 ? '<button class="ct" onclick="S.mi=' + mi + ";S.hn=" + n + ';S.pn=true;render()">' + n +
       "</button>" : ""

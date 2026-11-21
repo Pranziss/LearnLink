@@ -27,15 +27,9 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 
 ### Small fixes waiting
 
-- [ ] **Startup timing (`server.js`):** build the search index before loading the model. On the first start after
-  installing `nomic-embed-text`, both at once can time out on 6 GB, and LearnLink then runs keyword-only search until
-  the next restart (the log says "Embeddings unavailable"). After one good start it is cached in `.cache/`.
-- [ ] **Clean the finished answer:** remove a leftover "Okay," at the start and stray `*asterisks*` (gemma still does
-  this sometimes).
-- [ ] **Cache the PHP login check** longer (now 30 s), so fewer questions wait on PHP.
-- [ ] **Remove the old sign-up flow** in `student-signup.js` (about 150 lines, never used since the 2-step sign-up).
 - [ ] **Delete unused Ollama models** if the space is needed (about 30 GB: the uncensored/abliterated ones, `nova`,
-  `qwen2.5-coder`, `phi`, old `qwen`). Keep `gemma3:4b` and `nomic-embed-text`. Never use uncensored models here.
+  `qwen2.5-coder`, `phi`, old `qwen`, `llama3.2`). Keep `gemma3:4b` and `nomic-embed-text` (and `llama3.1:8b` /
+  `qwen3.5:4b` only for re-testing). Never use uncensored models here. Command: `ollama rm <name>`.
 
 ### Optional, if there is time
 
@@ -58,6 +52,9 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 ## Done
 
 ### Nov 21, 2026
+- **Small fixes:** modules are embedded before the model loads (no more keyword-only search after a bad start);
+  filler openers and `*markdown*` removed from answers (also while streaming); login check remembered 2 min (was 30 s);
+  the old 6-step sign-up and fake login screen removed (`student-signup.js` 380 → 231 lines).
 - **Model is now `gemma3:4b`** (was `llama3.1:8b`). Tested 3 models on 17 questions across all courses, including
   Filipino/Taglish, follow-ups and questions that are not in the modules:
 
@@ -114,5 +111,5 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 
 ## Not committed yet
 
-As of Nov 21: the gemma switch, the prompt changes, `prompts.js`, the small-talk fix, `tools/compare-models.js`
-and this file. (`.env` is never committed.)
+As of Nov 21 (afternoon): the small fixes in `server.js`, `student-ai.js`, `student-core.js`, `student-signup.js`,
+`CHANGES.md` and this file. (`.env` is never committed.)

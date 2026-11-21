@@ -1,5 +1,23 @@
 # Changes log
 
+## Nov 21, 2026: small fixes
+
+No database change. Restart `npm start`, then press Ctrl + Shift + R once.
+
+- **Startup order (`server.js`):** the modules are embedded first, then the model is loaded. Doing both at once could
+  time out on the 6 GB GPU, and search then stayed keyword-only until the next restart.
+- **Cleaner answers (`server.js`):** a filler opener ("Okay, let's break this down!", "That's a great question!",
+  "Hey there!") and `**bold**` / `*italics*` marks are removed from module and general answers. While streaming, the
+  first words are held back until it is clear they are not filler (about 0.1 s), so "Okay," never appears and then
+  vanishes. Tested on the 84 answers from the model test: 23 cleaned, nothing else changed; math like `2 * 3` is kept.
+  Small talk is left as it is ("Okay lang ako" is a real answer). `student-ai.js` drops the same marks while the
+  answer streams in.
+- **Login check remembered for 2 minutes** (was 30 seconds), so fewer questions wait on PHP. A deactivated account
+  or a class-list change takes up to 2 minutes to apply to AI answers.
+- **Old sign-up removed:** the 6-step form, its fake self-filling code check and the fake "Welcome back" login screen
+  (`student-signup.js` 380 → 231 lines; 3 leftover hooks in `student-core.js`). They never ran since the 2-step
+  sign-up. The sign-up and app screens draw exactly the same as before.
+
 ## Nov 21, 2026: gemma3:4b is the new model, and a tighter prompt
 
 No database change. Run `ollama pull gemma3:4b` and `ollama pull nomic-embed-text`, set `MODEL=gemma3:4b` in `.env`,

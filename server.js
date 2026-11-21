@@ -43,11 +43,11 @@ const SMALLTALK = new RegExp(`^((${GREET})( (ka|po|there|everyone|guys|lang|nama
 /* ---------- knowledge base ---------- */
 // modules/ is rebuilt from the database by PHP whenever a teacher uploads, hides or deletes something, then PHP calls /api/reload.
 const embed = (q) => R.embedTexts(OLLAMA, EMBED_MODEL, [R.prefixes(EMBED_MODEL).query + q]);
-let kb, embedState = "starting";
+let kb, embedState = "starting", embedJob = Promise.resolve();
 function buildKB() {
   const k = R.loadKB(path.join(__dirname, "modules"));
   kb = k; embedState = "starting";                              // keyword search works at once; embeddings join in when ready
-  (async () => {
+  embedJob = (async () => {
     try {
       const n = await R.embedKB(k, OLLAMA, EMBED_MODEL, path.join(__dirname, ".cache", "embeddings.json"));
       if (kb === k) embedState = "ready";
@@ -136,6 +136,34 @@ function contextQuery(q, history) {
   return q;
 }
 
+// Small models sometimes open with filler ("Okay, let's break this down!", "That's a great question!") or use *markdown*,
+// although prompts.js says not to. tidyStart removes such openers (repeatedly, they come in pairs); tidy also removes
+// **bold** and *italics* marks. Small talk is left alone: "Okay lang ako" is a real answer there.
+const OPENERS = [
+  /^(okay|ok|alright|all right|sure|so|hey there|hey|hi there)\s*[,!.:]+\s*/i,
+  /^(okay|ok|alright)\s+so\b[\s,]*/i,
+  /^so,?\s+/,                                                // a lowercase "so" left over from "Okay, so ..."
+  /^(that['’]?s|that is|it['’]?s|this is|what) (a |an |such a )?(really |very |super )?(great|good|important|common|interesting|excellent|nice|fair|tricky) (question|one|thing to ask)\b[^.!?\n—–-]{0,60}[.!?—–-]+\s*/i,
+  /^(great|good|excellent|nice) question\b[^.!?\n—–-]{0,40}[.!?—–-]+\s*/i,
+  /^let['’]?s (break|look at|talk about|dive into|go over|unpack)\b[^.!?\n]{0,80}[.!?]+\s*/i,
+  /^(\[\d+\]\s*)+(?=\S)/,                                    // a citation number before any text
+];
+// Models write ' or ’ (curly) in "let's" / "that's", so both are matched.
+const STARTERS = /^(okay|ok|alright|all|sure|so|hey|hi|that['’]?s|that|it['’]?s|this|what|great|good|excellent|nice|let['’]?s)$/i;
+function tidyStart(t) {
+  let prev;
+  do { prev = t; for (const r of OPENERS) t = t.replace(r, ""); } while (t !== prev);
+  return t ? t[0].toUpperCase() + t.slice(1) : t;
+}
+const tidy = (t) => tidyStart(t.trim()).replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");   // *word*, not "2 * 3"
+// While streaming: the start of the answer, once no more filler can follow (or after 160 characters); null = keep waiting.
+function headReady(h) {
+  const t = tidyStart(h.replace(/^\s+/, "")), w = t.match(/^([A-Za-z'’]+)[^A-Za-z'’]/);
+  if (h.length >= 160) return t;
+  if (!w || STARTERS.test(w[1]) || /^\[/.test(t)) return null;
+  return t;
+}
+
 // hooks.onMeta({mode, sources, ...}) fires before generation; hooks.onToken(text) fires per token.
 async function ask(body, hooks = {}, signal) {
   const q = String(body.q || "").trim().slice(0, 500);
@@ -167,10 +195,21 @@ async function ask(body, hooks = {}, signal) {
     tQueue = await acquire((n) => { waited = true; if (hooks.onQueue) hooks.onQueue(n); }, signal);
     if (waited && hooks.onQueue) hooks.onQueue(0);                 // "your turn now"
     const g0 = Date.now();
-    const onToken = (t) => { if (!tFirst) tFirst = Date.now() - g0; if (hooks.onToken) hooks.onToken(t); };
+    const emit = (t) => { if (!tFirst) tFirst = Date.now() - g0; if (hooks.onToken) hooks.onToken(t); };
+    // The first words are held back until it is clear they are not filler (usually one or two words), so the student
+    // never sees "Okay," appear and then vanish.
+    let head = "", open = mode === "chat";
+    const onToken = (t) => {
+      if (open) return emit(t);
+      head += t;
+      const h = headReady(head);
+      if (h !== null) { open = true; if (h) emit(h); }
+    };
     try { text = await chat([{ role: "system", content: system }, ...history, { role: "user", content: last }], onToken, signal); }
     finally { release(); }
     tGen = Date.now() - g0;
+    if (mode !== "chat") text = tidy(text);
+    if (!tFirst) tFirst = tGen;                                     // a short answer that never left the hold-back
     if (mode === "grounded") text = text.replace(/\[(\d+)\]/g, (m, n) => (+n >= 1 && +n <= sources.length ? m : "")).replace(/[ \t]{2,}/g, " ");   // drop citations that point at nothing
   }
 
@@ -191,7 +230,10 @@ async function status() {
 }
 
 /* ---------- login check and PHP proxy ---------- */
-// Asks PHP who the session cookie belongs to. The answer is remembered for 30 seconds so every question does not hit the database.
+// Asks PHP who the session cookie belongs to. The answer is remembered for 2 minutes so a student's questions do not
+// each wait on PHP and the database. Trade-off: a deactivated account, or a class-list change, takes up to 2 minutes to
+// apply to AI answers.
+const LOGIN_CACHE_MS = 2 * 60000;
 const seen = new Map();
 // Returns false when not logged in, otherwise { allowed }: the course ids this student may get answers from (null = all).
 async function loggedIn(req) {
@@ -199,7 +241,7 @@ async function loggedIn(req) {
   const ck = req.headers.cookie || "";
   if (!ck) return false;
   const c = seen.get(ck);
-  if (c && Date.now() - c.t < 30000) return c.ok;
+  if (c && Date.now() - c.t < LOGIN_CACHE_MS) return c.ok;
   const j = await (await fetch(`${PHP_API}/auth.php?action=me`, { headers: { cookie: ck }, signal: AbortSignal.timeout(3000) })).json();
   if (seen.size > 500) seen.clear();
   const ok = j.user ? { allowed: Array.isArray(j.allowed) ? j.allowed : null } : false;
@@ -345,7 +387,9 @@ http.createServer(async (req, res) => {
   console.log(`Knowledge base: ${kb.N} passages from ${Object.keys(kb.courses).length} courses`);
   const s = await status();
   console.log(s.ollama ? (s.modelInstalled ? `Model ready: ${MODEL}` : `Ollama is running but model "${MODEL}" is not installed. Run: ollama pull ${MODEL}`) : `Cannot reach Ollama at ${OLLAMA}. Start it with: ollama serve`);
-  if (s.modelInstalled) warmUp();
+  // Embed the modules first, then load the model. Both at once can run out of memory on a 6 GB GPU, and then the
+  // embeddings time out and search stays keyword-only until the next restart.
+  if (s.modelInstalled) { await embedJob; warmUp(); }
 });
 
 /* ---------- pages, scripts and styles ---------- */
