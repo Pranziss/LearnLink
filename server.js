@@ -129,7 +129,9 @@ const cleanHistory = (h) => (Array.isArray(h) ? h : []).slice(-8)
 
 // A follow-up like "why is that important?" has no searchable words of its own. When the question is short or points
 // back ("it", "that", "why"), search with the previous student question added, so retrieval still knows the topic.
-const BACKREF = /\b(it|its|that|this|they|them|those|these|there|one|ones)\b|^(why|how come|and|so|what about|how about|can you)\b/i;
+// "Ipaliwanag sa Filipino" / "explain in Tagalog" asks for the same topic in another language: also a follow-up, or
+// search would look for the word "Filipino" and find the Filipino pop-culture module.
+const BACKREF = /\b(it|its|that|this|they|them|those|these|there|one|ones)\b|^(why|how come|and|so|what about|how about|can you)\b|\b(sa|in) (filipino|tagalog|bisaya|cebuano|english)\b/i;
 function contextQuery(q, history) {
   const prev = [...history].reverse().find((m) => m.role === "user");
   if (prev && (R.tokenize(q).length < 3 || BACKREF.test(q.trim()))) return prev.content.slice(0, 300) + " " + q;
@@ -155,7 +157,7 @@ function tidyStart(t) {
   do { prev = t; for (const r of OPENERS) t = t.replace(r, ""); } while (t !== prev);
   return t ? t[0].toUpperCase() + t.slice(1) : t;
 }
-const tidy = (t) => tidyStart(t.trim()).replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");   // *word*, not "2 * 3"
+const tidy = (t) => tidyStart(t.trim()).replace(/\]\s+(?=[.,;:!?])/g, "]").replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");   // *word*, not "2 * 3"
 // While streaming: the start of the answer, once no more filler can follow (or after 160 characters); null = keep waiting.
 function headReady(h) {
   const t = tidyStart(h.replace(/^\s+/, "")), w = t.match(/^([A-Za-z'’]+)[^A-Za-z'’]/);

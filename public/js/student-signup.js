@@ -69,11 +69,11 @@ var REGERR = {
   missing_name: "Enter your full name",
   must_agree: "Please agree to the terms to create your account",
   php_unreachable: "Can’t reach the campus server. Check that you’re on the campus Wi‑Fi.",
-  server_error: "The database isn’t updated yet. On the server PC, run: php database/setup.php",
-  unknown_action: "The server files are older than this page. Replace the whole learnlink folder, then run: php database/setup.php"
+  server_error: "Sign-up isn’t working right now. Try again later, or tell your teacher. (Admin: run php database/setup.php.)",
+  unknown_action: "Sign-up isn’t working right now. Try again later, or tell your teacher. (Admin: update the whole learnlink folder, then run php database/setup.php.)"
 };
 function regErr(x) {
-  return REGERR[x && x.error] || "Something went wrong. Is the campus server running?";
+  return REGERR[x && x.error] || "Something went wrong. Check that you’re on the campus Wi‑Fi, then try again.";
 }
 // Google can only send people back to the address it was set up with, so only offer it where that works.
 function gOk() {

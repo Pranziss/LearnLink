@@ -1,9 +1,9 @@
-/* LearnLink student app, part 9 (load last): first draw, then load the account, courses and chats. */
+/* LearnLink student app, part 10 (load last): first draw, then load the account, courses and chats. */
 render();
 
 // The page stays hidden (gate.js) until the account and real course list are in, so sample courses never flash.
 if (S.scr === "app") {
-  if (LIVE) Promise.all([loadSession(true), loadCourses(true)]).then(LL_ready, function (e) {
+  if (LIVE) Promise.all([loadSession(true), loadCourses(true)]).then(function () { LL_ready(); tourStart() }, function (e) {
     LL_authError(e) ? LL_toLogin() : LL_fail();
   });
   else { loadSession(); loadCourses() }

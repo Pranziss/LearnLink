@@ -1,5 +1,49 @@
 # Changes log
 
+## Nov 21, 2026: smoother movement on phones
+
+No database change. Press Ctrl + Shift + R once.
+
+- **No more "page reload" look** (`student-core.js`): the page's fade-in now plays only when the screen really changes
+  (another course, tab or module). Before, it also played on every new message, rating, flashcard flip and on
+  opening or closing Sources, so the whole chat flashed.
+- **Sources sheet and phone menu slide in when they open and slide out when they close** (`student-core.js`
+  `pnClose` / `sbClose`, `student-chat.js`, `student.css`). Before, they replayed their slide-in on every redraw while
+  open and vanished at once on close.
+- **The chat keeps its scroll position:** it follows to the bottom only for a new message or when you're already at
+  the bottom. Before, tapping [1] or closing Sources jumped back to the last message.
+- **Messages slide in only when they are new** (`.msg-new1` / `.msg-new2`, set by `render()`). An older phone rule
+  replayed the slide-in of the last two messages on every redraw, so closing Sources or rating an answer still
+  looked like the chat reloaded. The sign-up card now pops in only when the step changes.
+- People who turn animations off on their device (reduced motion) get no slides at all.
+
+
+No database change. Restart `npm start`, then press Ctrl + Shift + R once. Checked at phone (390 px) and desktop
+width, logged in as a test student, in dark and light.
+
+- **No more blank screens while loading:**
+  - after logging in, "Opening LearnLink…" shows (`login.html`, `login.js`, `login.css`), then a grey placeholder in
+    the shape of the page (`gate.js`, so faculty and admin get it too) until the account and courses are in;
+  - opening a saved chat shows "Opening your chat…" at once (`student-db.js`); a module shows grey placeholder lines.
+- **Plain error messages:** students no longer see "Make sure Ollama is running", "run npm start", "VS Code Live
+  Server" or error codes. Each error says what happened and what to do, with an **Ask again** / **Try again** /
+  **Log in again** button (`student-ai.js`, `student-db.js`, `student-courses.js`). Setup hints stay, at the end,
+  as "(Admin: …)" (`login.js`, `student-signup.js`, `gate.js`). The "Can't reach LearnLink" page follows light/dark.
+- **Suggestions:**
+  - home: three modules from different courses, phrased "Explain …", "Quiz me on …", "Key terms in …"; they change
+    once a day, and generic titles like "Course Overview" are skipped (`student-chat.js`);
+  - under the latest answer: **Give me an example**, **Explain it more simply**, **Quiz me on this**,
+    **Ipaliwanag sa Filipino** (one tap asks it);
+  - in a course's Ask tab: **Summarize this**, **What are the key terms?**, **Quiz me with 3 questions**.
+- **First-login tour** (new `student-tour.js`): three short cards (ask anything, tap [1] to see the source, the menu),
+  once per device, with Skip; Esc closes it.
+- **Phones:** the Sources panel no longer opens by itself after an answer (it covered the answer); the Sources tab and
+  the [1] numbers open it. Citation numbers are bigger to tap. The DEMO badge (only with `?demo`) moved to the top
+  and says just "DEMO" on phones, so it no longer covers the chat box.
+- **Server (`server.js`):** "Ipaliwanag sa Filipino" / "explain in Tagalog" now counts as a follow-up, so search
+  stays on the same topic (it was finding the Filipino pop-culture module). A space between [1] and the period after
+  it is removed.
+
 ## Nov 21, 2026: small fixes
 
 No database change. Restart `npm start`, then press Ctrl + Shift + R once.

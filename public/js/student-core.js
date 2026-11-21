@@ -1,5 +1,5 @@
-/* LearnLink student app, part 1 of 9: shared helpers, sample data (?demo), app state, render().
-   The parts share globals, so student.html must load them in order: core, signup, chat, ai, courses, db, settings, network, start. */
+/* LearnLink student app, part 1 of 10: shared helpers, sample data (?demo), app state, render().
+   The parts share globals, so student.html must load them in order: core, signup, chat, ai, courses, db, settings, network, tour, start. */
 var D = document, $ = function (i) {
   return D.getElementById(i)
 }, E = function (s) {
@@ -186,18 +186,47 @@ function go(s) {
   render()
 }
 
+// Every change redraws the page. So that it doesn't look like a reload:
+// - the page's fade-in ("enter") plays only when the view really changes (another screen, course, tab, module),
+//   not for a new message, a rating or opening/closing Sources;
+// - the Sources sheet and the phone menu slide in only when they open (pn-in, sb-in), not on every redraw;
+// - the chat keeps its scroll position, and only follows to the bottom for a new message or when already there.
+var LASTN = -1;
 function render() {
-  var r = $("root"), k = [S.scr, S.v, S.st, S.sp, S.ci, S.vm !== null, !!S.vw, S.qi, S.fi, S.fl, CH.length,
-    S.ch.length, S.pn, S.sb].join("|");
-  r.className = k !== window.K ? "enter" : "";
+  var r = $("root"), k = [S.scr, S.v, S.st, S.sp, S.ci, S.vm !== null, !!S.vw, S.qi, S.fi].join("|"), c = [];
+  if (k !== window.K) c.push("enter");
+  if (S.pn && !window.PN0) c.push("pn-in");
+  if (S.sb && !window.SB0) c.push("sb-in");
+  // only messages that were just added slide in (1 or 2: a question and its "Thinking…" arrive together)
+  if (LASTN >= 0 && CH.length > LASTN) c.push("msg-new" + Math.min(2, CH.length - LASTN));
   window.K = k;
+  window.PN0 = S.pn;
+  window.SB0 = S.sb;
+  var old = $("msgs"), top = old ? old.scrollTop : null,
+    atEnd = old ? old.scrollHeight - old.scrollTop - old.clientHeight < 80 : true;
+  r.className = c.join(" ");
   r.innerHTML = S.scr === "reg" ? reg() : app();
+  var m = $("msgs");
+  if (m) m.scrollTop = CH.length !== LASTN || atEnd || top === null || c[0] === "enter" ? m.scrollHeight : top;
+  LASTN = CH.length;
   after()
 }
 
-function after() {
-  var m = $("msgs");
-  if (m) m.scrollTop = m.scrollHeight;
+function after() {}
+
+// Close the Sources sheet / phone menu with a short slide-out first, then redraw without them.
+function slideOut(id, cls, done) {
+  var el = $(id);
+  if (!el || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) return done();
+  el.classList.add(cls);
+  setTimeout(done, 180)
+}
+function pnClose() {
+  slideOut("pn", "pn-out", function () { S.pn = false; render() })
+}
+function sbClose() {
+  if (innerWidth > 760) { S.sb = false; render(); return }
+  slideOut("sb", "sb-out", function () { S.sb = false; render() })
 }
 
 function name() {

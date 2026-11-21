@@ -1150,3 +1150,114 @@ body {
     transition: none!important;
   }
 }
+
+/* ==========================================================================
+   Screens pass (Nov 21, 2026): loading placeholders, follow-up suggestions, first-login tour, citation spacing
+   ========================================================================== */
+/* grey "loading" lines (module viewer) */
+.skl {
+  display: block;
+  height: 13px;
+  margin: 0 0 10px;
+  border-radius: 8px;
+  background: var(--s1);
+  animation: sklp 1s ease-in-out infinite alternate;
+}
+@keyframes sklp { from { opacity: .45 } to { opacity: 1 } }
+
+/* tappable suggestions under an answer, and in a course's Ask tab */
+.fu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.fu .sug {
+  font-size: 12.5px;
+  padding: 6px 12px;
+}
+
+/* citation numbers: no gap before the period that follows, a little bigger to tap on phones */
+.ct {
+  margin: 0 0 0 1px;
+  vertical-align: 1px;
+}
+@media (hover: none) {
+  .ct { width: 22px; height: 22px; }
+}
+
+/* first-login tour (student-tour.js) */
+.tour {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 26, 69, .55);
+}
+.tour .card {
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  padding: 22px;
+  animation: pop .3s;
+}
+.tour h3 {
+  margin: 4px 0 6px;
+  font-size: 18px;
+}
+.tour p {
+  margin: 0 0 16px;
+  color: var(--t2);
+  line-height: 1.6;
+}
+.tour-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.tour-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bd2);
+}
+.tour-dots span.on {
+  width: 18px;
+  border-radius: 99px;
+  background: var(--ac);
+}
+
+/* Smooth panels (Nov 21, 2026): the Sources sheet and the phone menu slide in only when they open (.pn-in / .sb-in,
+   set by render() in student-core.js) and slide out when closed (.pn-out / .sb-out), instead of replaying on every
+   redraw and vanishing on close. */
+#pn { animation: none !important; }
+.pn-in #pn { animation: slide .3s cubic-bezier(.22,1,.36,1) !important; }
+#pn.pn-out { animation: pnout .18s ease-in forwards !important; }
+@keyframes pnout { to { transform: translateX(100%); opacity: .6; } }
+@media (max-width: 760px) {
+  .pn-in #pn { animation: sheet .3s cubic-bezier(.22,1,.36,1) !important; }
+  #pn.pn-out { animation: sheetout .18s ease-in forwards !important; }
+  @keyframes sheetout { to { transform: translateY(100%); } }
+  #sb { animation: none; }
+  .sb-in #sb { animation: drawer .26s cubic-bezier(.22,1,.36,1); }
+  #sb.sb-out { animation: drawerout .18s ease-in forwards; }
+  @keyframes drawerout { to { transform: translateX(-100%); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pn-in #pn, #pn.pn-out, .sb-in #sb, #sb.sb-out { animation: none !important; }
+}
+
+/* Messages slide in only when they are new (.msg-new1 / .msg-new2 set by render()), not on every redraw: before,
+   the last two messages replayed their slide-in whenever anything changed (closing Sources, rating an answer),
+   which looked like the chat reloading. Same for the sign-up card: only when the screen changes (.enter). */
+#msgs > div { animation: none !important; }
+.msg-new1 #msgs > div:last-child,
+.msg-new2 #msgs > div:nth-last-child(-n+2) { animation: msgin .28s cubic-bezier(.22,1,.36,1) both !important; }
+.au .card { animation: none; }
+.enter .au .card { animation: cardin .32s cubic-bezier(.22,1,.36,1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .msg-new1 #msgs > div:last-child, .msg-new2 #msgs > div:nth-last-child(-n+2), .enter .au .card { animation: none !important; }
+}

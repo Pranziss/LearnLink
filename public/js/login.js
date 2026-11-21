@@ -70,8 +70,8 @@ var GSMSG = {
 var LOGIN_ERR = {
   bad_login: "Wrong email or password.",
   account_disabled: "This account is disabled. Ask the admin.",
-  php_unreachable: "Cannot reach the database. In Laragon, click Start All (Apache and MySQL), then try again.",
-  server_error: "The server could not read the database. Did you run php database/setup.php?"
+  php_unreachable: "LearnLink can’t reach its database right now. Try again in a few minutes. (Admin: in Laragon, click Start All.)",
+  server_error: "LearnLink couldn’t read its database. Try again in a few minutes. (Admin: run php database/setup.php.)"
 };
 
 /* ---- Forgot password ----
@@ -244,6 +244,9 @@ function launch(k) {
   if (gc) try { history.replaceState(null, "", location.pathname) } catch (e) {}
   f.className = "show";
   $("login").style.display = "none";
+  var o = $("opening");
+  o.innerHTML = bot(64) + "<span>Opening LearnLink…</span>";
+  o.hidden = false;
 
 }
 window.addEventListener("message", function (e) {
@@ -256,6 +259,7 @@ window.addEventListener("message", function (e) {
     var f = $("fr");
     f.className = "";
     f.src = "about:blank";
+    $("opening").hidden = true;
     $("login").style.display = "";
     MSG = "";
     view()

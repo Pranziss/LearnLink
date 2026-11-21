@@ -9,7 +9,7 @@ function app() {
       '" onclick="openC(' + i + ')">' + E(c[0]) + "</button>"
   }).join("") : '<p class="sm" style="margin:4px 14px 8px">No courses yet. Courses appear here once your teacher sets them up.</p>') + "</div>" : "") + '<div style="margin-top:auto;border-top:1px solid var(--bd);padding-top:8px"><button class="it' +
     (S.v === "set" ? " on" : "") + '" onclick="lv(function(){S.v=\'set\';mob();render()})">Settings</button></div></aside>' : "";
-  var tb = '<div class="top"><div style="display:flex;align-items:center;gap:8px"><button class="g" aria-label="Menu" onclick="S.sb=!S.sb;render()" style="font-size:18px">☰</button>' +
+  var tb = '<div class="top"><div style="display:flex;align-items:center;gap:8px"><button class="g" aria-label="Menu" onclick="S.sb ? sbClose() : (S.sb = true, render())" style="font-size:18px">☰</button>' +
     bot(26) + '<b>LearnLink</b></div></div>';
   var dd = S.pm ? '<div class="dd"><div style="cursor:default"><b>' + E(name()) + '</b><br><span class="sm">' +
     E(R.prg || "BS Information Technology") + " · " + E(R.yr || "3rd year") + " · Sec " + E(R.sec || "C") +
@@ -17,7 +17,7 @@ function app() {
   var body = S.v === "home" || S.v === "chat" ? chatV() : S.v === "set" ? setV() : S.v === "course" ? courseV() : spaceV();
   return '<div id="app" onclick="if(S.pm||S.nm){S.pm=false;S.nm=false;render()}">' + side + "<main>" + tb +
     netB() + body.h + (body.x || "") + "</main>" + (S.vw || (S.v === "course" && S.vm !== null) ? viewer() : "") +
-    dd + netP() + cfmH() + "</div>"
+    dd + netP() + cfmH() + tourH() + "</div>"
 }
 
 function mob() {
@@ -78,12 +78,30 @@ function openC0(i) {
   mob();
   render()
 }
-// Home suggestions: the first module of each of the student's first three courses (live), or fixed examples (demo).
+// Home suggestions (live): one module from each of three different courses, phrased three ways. They change once a
+// day, not on every screen update. Generic titles ("Course Overview", "Case Studies") are skipped. Demo: fixed examples.
 function sugg() {
   if (!LIVE) return ["What is the CIA triad?", "Ethics vs morality", "Flexbox vs grid"];
-  return CO.filter(function (c) { return c[3].length }).slice(0, 3).map(function (c) {
-    return "Explain " + c[3][0].replace(/^(what|who) (is|are)\s+/i, "").replace(/\?$/, "")
-  })
+  var day = Math.floor(Date.now() / 864e5), ways = ["Explain ", "Quiz me on ", "Key terms in "];
+  var cs = CO.map(function (c) {
+    return c[3].filter(function (t) { return !/^(course overview|overview|introduction|applications|case studies|review|summary)$/i.test(t.trim()) })
+  }).filter(function (ts) { return ts.length });
+  var out = [];
+  for (var i = 0; i < cs.length && out.length < 3; i++) {
+    var ts = cs[(day + i) % cs.length], t = ts[(day + i) % ts.length];
+    t = t.replace(/^(introduction to|intro to|(what|who) (is|are))\s+/i, "").replace(/\?$/, "");
+    out.push(ways[out.length] + t)
+  }
+  return out
+}
+// Follow-ups under the latest answer: one tap asks again about the same topic (the server knows what "this" means
+// from the chat so far). Only after module or general answers, not after small talk or errors.
+var FOLLOW = ["Give me an example", "Explain it more simply", "Quiz me on this", "Ipaliwanag sa Filipino"];
+function followH(m, i) {
+  if (!LIVE || BZ || i !== CH.length - 1 || !m.t || (m.md !== "grounded" && m.md !== "general")) return "";
+  return '<div class="fu" role="group" aria-label="Ask a follow-up">' + FOLLOW.map(function (t) {
+    return '<button class="sug" onclick="$(\'qi\').value=this.textContent;ask()">' + t + "</button>"
+  }).join("") + "</div>"
 }
 /* chat */
 function chatV() {
@@ -97,14 +115,14 @@ function chatV() {
         E(t) + "</button>"
     }).join("") + "</div></div></div>"
   } else {
-    h = '<div class="sc" id="msgs" style="padding-right:' + (S.pn ? "292px" : "22px") + '">' + CH.map(function (m) {
+    h = '<div class="sc" id="msgs" style="padding-right:' + (S.pn ? "292px" : "22px") + '">' + CH.map(function (m, i) {
       return m.u !== undefined ? '<div style="display:flex;justify-content:flex-end;margin:10px 0"><div style="background:var(--s1);border-radius:16px;padding:8px 14px;max-width:80%">' +
         E(m.u) + "</div></div>" : '<div style="display:flex;gap:10px;align-items:flex-start;margin:12px 0">' +
-        bot(34) + '<div' + (m.live ? ' id="live"' : '') + ' style="flex:1;min-width:0">' + m.h + fbH(m) + "</div></div>"
+        bot(34) + '<div' + (m.live ? ' id="live"' : '') + ' style="flex:1;min-width:0">' + m.h + fbH(m) + followH(m, i) + "</div></div>"
     }).join("") + '</div><div style="padding:0 22px 16px">' + box("qi", "Ask a follow-up…") + "</div>";
     var mm = MS[S.mi];
     if (S.pn && mm) x = '<div id="pn"><div style="display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid var(--bd)"><div><b>Sources</b><div class="sm">' +
-      E(mm.t) + '</div></div><button class="g" aria-label="Close" onclick="S.pn=false;render()">✕</button></div><div style="flex:1;overflow-y:auto;padding:12px">' +
+      E(mm.t) + '</div></div><button class="g" aria-label="Close sources" onclick="pnClose()">✕</button></div><div style="flex:1;overflow-y:auto;padding:12px">' +
       mm.c.map(function (c, i) {
       return '<div class="src' + (S.hn === i + 1 ? " hl" : "") + '"><b>' + (i + 1) + ". " + E(c[0]) + '</b><div class="sm">' +
         c[1] + '</div><p class="sm" style="border-left:2px solid var(--bd2);padding-left:8px;margin:8px 0">' +
@@ -292,6 +310,5 @@ document.addEventListener("click", function (e) {
   if (innerWidth > 760 || !S.sb || S.scr !== "app") return;
   var t = e.target;
   if (t.closest && (t.closest("#sb") || t.closest('[aria-label="Menu"]'))) return;
-  S.sb = false;
-  render()
+  sbClose()
 }, true);

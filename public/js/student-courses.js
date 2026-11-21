@@ -77,6 +77,10 @@ function rm0(i) {
   render()
 }
 
+// Loading placeholder: grey lines of the given widths ("0" = a paragraph gap). Styles: .skl in student.css.
+function skl(ws) {
+  return ws.map(function (w) { return w === "0" ? '<div style="height:10px"></div>' : '<i class="skl" style="width:' + w + '"></i>' }).join("")
+}
 // Real module text (live mode): what LearnLink reads from the module's files, loaded once per module.
 var MTX = {};
 function viewerLive(ci, m, id) {
@@ -85,7 +89,8 @@ function viewerLive(ci, m, id) {
     d = MTX[id] = "loading";
     api("courses?action=module_text&id=" + id).then(function (j) { MTX[id] = j; render() }, function () { MTX[id] = "error"; render() });
   }
-  var body = d === "loading" ? '<p class="sm">Loading the module…</p>' : d === "error" ? '<p class="sm">Couldn’t load this module. Try again in a moment.</p>' :
+  var body = d === "loading" ? '<div role="status" aria-label="Loading the module">' + skl(["40%", "100%", "95%", "88%", "0", "100%", "92%", "70%"]) + "</div>" :
+    d === "error" ? '<p class="sm">Couldn’t load this module. Check that you’re on the campus Wi‑Fi.</p><button onclick="delete MTX[' + (+id) + '];render()">Try again</button>' :
     (d.text ? d.text.split(/\n{2,}/).map(function (p) {
       // light markdown: **bold**, "- " bullets, "## headings"
       var t = E(p).replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/^[-*]\s+/gm, "• ");
@@ -133,7 +138,10 @@ function spaceV() {
     }).join("");
     if (S.tp) h += typH(S.tp);
     if (!S.ch.length && !S.tp) h += '<div class="card" style="text-align:center;padding:22px"><b>Ask about ' +
-      (S.sel.length ? "the selected module" + (S.sel.length > 1 ? "s" : "") : "this course") + '</b><p class="sm">Answers come only from the modules in scope.</p><button onclick="sa(\'Summarize this\')">Summarize this</button></div>';
+      (S.sel.length ? "the selected module" + (S.sel.length > 1 ? "s" : "") : "this course") + '</b><p class="sm">Answers come only from the modules in scope.</p><div class="fu" style="justify-content:center">' +
+      ["Summarize this", "What are the key terms?", "Quiz me with 3 questions"].map(function (t) {
+        return '<button class="sug" onclick="sa(this.textContent)">' + t + "</button>"
+      }).join("") + "</div></div>";
     h += '<div style="display:flex;gap:8px;margin-top:14px"><input id="ai" placeholder="Ask a question…" style="flex:1" onkeydown="if(event.key===\'Enter\')sa()"><button class="p" onclick="sa()">Ask</button></div>'
   } else if (LIVE) h += '<div class="card" style="text-align:center;padding:24px"><span class="chip n">Coming soon</span><p style="margin:10px 0 0;line-height:1.6">' +
     ({ sum: "Summaries", quiz: "Quizzes", fc: "Flashcards" })[S.sp] + ' made from your modules are on the way. For now, use <b>Ask</b>, for example “Summarize this module” or “Quiz me on this”.</p></div>';

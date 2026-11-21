@@ -136,6 +136,17 @@ recs = function () {
 
 function openChat(id) {
   lv(function () {
+    // Show the chat at once with "Opening your chat…", so a tap never looks like nothing happened.
+    clr();
+    chatId = null;
+    CH = [{ typ: 1, h: dots3("Opening your chat…") }];
+    MS = [];
+    S.v = "chat";
+    S.pn = false;
+    S.mi = -1;
+    S.srch = false;
+    mob();
+    render();
     api("chats?action=open&id=" + id).then(function (j) {
       clr();
       CH = [];
@@ -166,12 +177,16 @@ function openChat(id) {
             ]
           })
         }) - 1;
-        CH.push({ h: finalH(M, m.content, mi), t: M.mode === "none" ? "" : m.content, mid: m.id, rt: m.rating,
+        CH.push({ h: finalH(M, m.content, mi), t: M.mode === "none" ? "" : m.content, md: M.mode, mid: m.id, rt: m.rating,
           fr: false })
       });
       mob();
       render()
-    }, function () {})
+    }, function () {
+      CH = [{ h: '<span class="chip w">Couldn’t open this chat</span><p style="margin:10px 0 0;line-height:1.7">Check that you’re on the campus Wi‑Fi, then try again. You can still ask a new question below.</p>' +
+        '<button style="margin-top:8px" onclick="openChat(' + (+id) + ')">Try again</button>' }];
+      render()
+    })
   })
 }
 

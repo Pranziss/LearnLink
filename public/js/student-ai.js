@@ -152,7 +152,7 @@ function hist() {
 // Turn the model's text into safe HTML. [1] becomes a button that opens that source. **bold** and *italics* marks are
 // dropped (the server does the same to the finished answer; this covers the words still streaming in).
 function pbody(text, mi, caret) {
-  text = String(text).replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");
+  text = String(text).replace(/\]\s+(?=[.,;:!?])/g, "]").replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");
   return E(text).replace(/\n+/g, "<br>").replace(/\[(\d+)\]/g, function (a, n) {
     return mi >= 0 ? '<button class="ct" onclick="S.mi=' + mi + ";S.hn=" + n + ';S.pn=true;render()">' + n +
       "</button>" : ""
@@ -172,7 +172,7 @@ function finalH(M, text, mi) {
     mi + ';S.pn=true;S.hn=0;render()">' + M.sources.length + " source" + (M.sources.length > 1 ? "s" : "") +
     "</button>"
 }
-var _askBase = ask;
+var _askBase = ask, RETRY = [];   // RETRY: questions behind "Ask again" buttons (kept out of the HTML)
 ask = function () {
   var e = $("qi");
   if (!e || BZ || !e.value.trim()) return;
@@ -216,10 +216,16 @@ ask = function () {
     finished = true;
     clearTimeout(guard);
     var i = slot();
+    // Plain words for students. What to fix on the server is in the README and the server's own log.
+    var why = code === "no_server" ? ["Can’t reach LearnLink", "LearnLink didn’t answer. Check that you’re on the campus Wi‑Fi, then ask again."] :
+      code === "model_unreachable" || code === "timeout" ? ["The AI is busy or offline", "Your question was not answered. Try again in a minute. If it keeps happening, tell your teacher."] :
+      code === "too_many_requests" ? ["Slow down a little", "You’re asking very quickly. Wait a few seconds, then ask again."] :
+      code === "not_logged_in" ? ["You were logged out", "Log in again to keep asking. Your saved chats are still there."] :
+      ["Something went wrong", "Your question was not answered. Try asking again."];
     if (i > -1) CH[i] = {
-      h: '<span class="chip w">Can’t reach LearnLink</span><p style="margin:10px 0 0;line-height:1.7">' + (code === "no_server" ? "The LearnLink server isn’t running for this page. If you are using VS Code Live Server (port 5500), that is the problem: run npm start in the learnlink folder and open http://localhost:3000 instead." : code === "model_unreachable" ||
-        code === "timeout" ? "The AI model isn’t answering right now. Make sure Ollama is running on the server, then try again." : code === "too_many_requests" ? "You are asking very quickly. Wait a few seconds and try again." : code === "not_logged_in" ? "Your session ended. Log out and log in again." : "Something went wrong (" +
-        E(code) + "). Try again in a moment.") + "</p>"
+      h: '<span class="chip w">' + why[0] + '</span><p style="margin:10px 0 0;line-height:1.7">' + why[1] + "</p>" +
+        (code === "not_logged_in" ? '<button class="p" style="margin-top:8px" onclick="parent.postMessage(\'logout\',\'*\')">Log in again</button>' :
+          '<button style="margin-top:8px" onclick="$(\'qi\').value=RETRY[' + (RETRY.push(q) - 1) + '];ask()">Ask again</button>')
     };
     BZ = 0;
     STOP = null;
@@ -275,11 +281,11 @@ ask = function () {
       text = ev.text || text;
       var i = slot();
       if (i > -1) {
-        CH[i] = { h: finalH(M, text, mi), t: M.mode === "none" ? "" : text };
+        CH[i] = { h: finalH(M, text, mi), t: M.mode === "none" ? "" : text, md: M.mode };
         saveTurn(q, text, M, ev.timings, CH[i]);
         if (M.mode === "grounded" && /\[\d+\]/.test(text)) {
           S.mi = mi;
-          S.pn = true;
+          S.pn = innerWidth > 760;   // on a phone the panel would cover the answer: the Sources tab and [1] open it
           S.hn = 0
         }
       }

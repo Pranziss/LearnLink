@@ -22,8 +22,8 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
    - [ ] real modules for 2 or 3 demo courses (IT 313 is placeholder text)
    - [ ] a pre-flight check (Ollama, MySQL, server, model loaded) before presenting
    - [ ] a written demo script: what to click, what to say
-4. [ ] **Screens:** phone-width pass, loading placeholders instead of blank screens, suggested questions,
-   a short tour on first login, plain error messages.
+4. [x] **Screens (student app), done Nov 21:** loading placeholders, plain errors, suggestions, first-login tour,
+   phone fixes. Still open: the same pass for the faculty and admin pages (they only got the loading placeholder).
 
 ### Small fixes waiting
 
@@ -52,6 +52,11 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 ## Done
 
 ### Nov 21, 2026
+- **Smoother on phones:** no more page "reload" flash, Sources and the menu slide in and out, and the chat keeps
+  its scroll position (found while testing on a real phone over Wi-Fi).
+- **Screens pass (student app):** no blank screens while loading, plain error messages with a retry button,
+  better home suggestions plus follow-ups under each answer, a first-login tour, Sources panel no longer covers
+  answers on phones. Checked at phone and desktop width, logged in, dark and light.
 - **Small fixes:** modules are embedded before the model loads (no more keyword-only search after a bad start);
   filler openers and `*markdown*` removed from answers (also while streaming); login check remembered 2 min (was 30 s);
   the old 6-step sign-up and fake login screen removed (`student-signup.js` 380 → 231 lines).
@@ -111,5 +116,5 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 
 ## Not committed yet
 
-As of Nov 21 (afternoon): the small fixes in `server.js`, `student-ai.js`, `student-core.js`, `student-signup.js`,
-`CHANGES.md` and this file. (`.env` is never committed.)
+As of Nov 21 (evening): the small fixes and the screens pass (`server.js`, `login.html`, `css/`, `js/`), the docs.
+(`.env` is never committed.)

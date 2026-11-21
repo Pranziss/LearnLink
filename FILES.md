@@ -101,6 +101,7 @@ starting content imported by `setup.php`. Each course is a folder of numbered ma
 | `js/student-db.js` | Database calls: account, courses, saved chats, ratings. |
 | `js/student-settings.js` | Settings: photo, appearance, password, export / delete my data. |
 | `js/student-network.js` | Connection status: Wi-Fi icon, speed checks, offline notice. |
+| `js/student-tour.js` | First-login tour: three short cards, once per device, with Skip. |
 | `js/student-start.js` | Loaded last: first draw, then loads the account, courses and chats. |
 | `js/faculty.js` | Faculty app: courses, modules and uploads, Insights charts, home page. Shows sample data only when opened without the server. |
 | `js/faculty-classroom.js` | Faculty "Classroom" tab: connect Google, link a class, review and publish drafts, sync history. |
