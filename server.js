@@ -1,14 +1,14 @@
 // LearnLink server: serves the pages, retrieves passages from the faculty modules, and asks a
 // LOCAL language model (Ollama) to write the answer. No cloud API, no dependencies. Needs Node 18+.
 "use strict";
-const http = require("http"), fs = require("fs"), path = require("path");
+const http = require("http"), fs = require("fs"), path = require("path"), zlib = require("zlib");
 const R = require("./retrieval");
 
-// Tiny .env loader, so you don't need any package for it.
+// Tiny .env loader, so you don't need any package for it. A "# comment" after a value is ignored (same as api/_env.php).
 try {
   fs.readFileSync(path.join(__dirname, ".env"), "utf8").split(/\r?\n/).forEach((l) => {
-    const m = l.match(/^\s*([A-Z_]+)\s*=\s*(.*?)\s*$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    const m = l.match(/^\s*([A-Z_]+)\s*=\s*(.*)$/);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/\s+#.*$/, "").trim().replace(/^["']|["']$/g, "");
   });
 } catch {}
 
@@ -21,6 +21,10 @@ const EMBED_MODEL = E.EMBED_MODEL || "nomic-embed-text";
 const NUM_CTX = +E.NUM_CTX || 4096;                        // keep small: the KV cache shares 6 GB of VRAM with the weights
 const TEMPERATURE = E.TEMPERATURE !== undefined ? +E.TEMPERATURE : 0.5;
 const MAX_CONCURRENT = +E.MAX_CONCURRENT || 1;             // generations running at once on the GPU
+const NUM_PREDICT = +E.NUM_PREDICT || 300;                  // longest answer in tokens; the prompt asks for about 5 sentences at most
+// How long Ollama keeps the model in GPU memory after the last question. Loading it again takes several seconds,
+// so keep it long on the campus server. "-1" = keep it loaded for as long as Ollama runs.
+const KEEP_ALIVE = /^-?\d+$/.test(E.KEEP_ALIVE || "") ? +E.KEEP_ALIVE : E.KEEP_ALIVE || "4h";
 const RATE_PER_MIN = +E.RATE_PER_MIN || 30;
 const ALLOW_GENERAL = E.ALLOW_GENERAL !== "false";         // answers outside the modules (always labeled)
 const PHP_API = (E.PHP_API || "http://127.0.0.1/learnlink/api").replace(/\/$/, "");   // Laragon (Apache + PHP + MySQL): accounts, courses, uploads, chats, feedback
@@ -98,7 +102,7 @@ buildKB();
 async function chat(messages, onToken, signal) {
   const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 120000);
   if (signal) signal.addEventListener("abort", () => ac.abort());
-  const body = { model: MODEL, stream: true, keep_alive: "30m", messages, options: { temperature: TEMPERATURE, top_p: 0.9, repeat_penalty: 1.1, num_ctx: NUM_CTX, num_predict: 400 } };
+  const body = { model: MODEL, stream: true, keep_alive: KEEP_ALIVE, messages, options: { temperature: TEMPERATURE, top_p: 0.9, repeat_penalty: 1.1, num_ctx: NUM_CTX, num_predict: NUM_PREDICT } };
   const go = async (b) => {
     const r = await fetch(`${OLLAMA}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b), signal: ac.signal });
     if (!r.ok) { const j = await r.json().catch(() => ({})); throw { code: r.status === 404 ? 503 : 502, msg: (j && j.error) || "model_error" }; }
@@ -126,10 +130,34 @@ async function chat(messages, onToken, signal) {
   } finally { clearTimeout(timer); }
 }
 
+// Load the model into GPU memory now, so the first student doesn't wait for it. An empty chat only loads it.
+// num_ctx must match the real requests, or Ollama loads the model a second time with the other size.
+async function warmUp() {
+  const t = Date.now();
+  try {
+    const r = await fetch(`${OLLAMA}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ model: MODEL, messages: [], keep_alive: KEEP_ALIVE, options: { num_ctx: NUM_CTX } }), signal: AbortSignal.timeout(180000) });
+    if (r.ok) console.log(`Model loaded in ${((Date.now() - t) / 1000).toFixed(1)} s (kept in memory: ${KEEP_ALIVE})`);
+  } catch {}
+}
+
 // Only MAX_CONCURRENT generations run at once; the rest wait in line. The wait is reported so it can be measured.
+// onWait(n) tells a waiting student their place in line (1 = next). A cancelled question leaves the line.
 let running = 0; const waiting = [];
-const acquire = () => new Promise((res) => { const t = Date.now(); const go = () => { running++; res(Date.now() - t); }; running < MAX_CONCURRENT ? go() : waiting.push(go); });
-const release = () => { running--; const n = waiting.shift(); if (n) n(); };
+function acquire(onWait, signal) {
+  return new Promise((res, rej) => {
+    const t = Date.now(), w = { go: () => { running++; res(Date.now() - t); }, onWait };
+    if (running < MAX_CONCURRENT) return w.go();
+    if (signal && signal.aborted) return rej({ code: 499, msg: "cancelled" });
+    waiting.push(w);
+    if (onWait) onWait(waiting.length);
+    if (signal) signal.addEventListener("abort", () => {
+      const i = waiting.indexOf(w);
+      if (i > -1) { waiting.splice(i, 1); tellPlaces(); rej({ code: 499, msg: "cancelled" }); }
+    });
+  });
+}
+const tellPlaces = () => waiting.forEach((w, i) => { if (w.onWait) w.onWait(i + 1); });
+const release = () => { running--; const n = waiting.shift(); if (n) n.go(); tellPlaces(); };
 
 /* ---------- one question ---------- */
 const cleanHistory = (h) => (Array.isArray(h) ? h : []).slice(-8)
@@ -168,19 +196,23 @@ async function ask(body, hooks = {}, signal) {
   const mode = small ? "chat" : sources.length ? "grounded" : general ? "general" : "none";
   if (hooks.onMeta) hooks.onMeta({ mode, sources, retrieval, model: MODEL, retrievalQuery: rq === q ? undefined : rq });
 
-  let text = "", tQueue = 0, tGen = 0;
+  let text = "", tQueue = 0, tGen = 0, tFirst = 0;
   if (mode !== "none") {
     const system = PERSONA + (mode === "grounded" ? GROUNDED : mode === "general" ? GENERAL_RULES : CHAT_RULES);
     const last = mode === "grounded" ? "Course passages:\n" + sources.map((s) => `[${s.n}] ${s.course}, ${s.title}: ${s.text}`).join("\n\n") + "\n\nStudent: " + q : q;
-    tQueue = await acquire();
+    let waited = false;
+    tQueue = await acquire((n) => { waited = true; if (hooks.onQueue) hooks.onQueue(n); }, signal);
+    if (waited && hooks.onQueue) hooks.onQueue(0);                 // "your turn now"
     const g0 = Date.now();
-    try { text = await chat([{ role: "system", content: system }, ...history, { role: "user", content: last }], hooks.onToken, signal); }
+    const onToken = (t) => { if (!tFirst) tFirst = Date.now() - g0; if (hooks.onToken) hooks.onToken(t); };
+    try { text = await chat([{ role: "system", content: system }, ...history, { role: "user", content: last }], onToken, signal); }
     finally { release(); }
     tGen = Date.now() - g0;
     if (mode === "grounded") text = text.replace(/\[(\d+)\]/g, (m, n) => (+n >= 1 && +n <= sources.length ? m : "")).replace(/[ \t]{2,}/g, " ");   // drop citations that point at nothing
   }
 
-  const timings = { retrieveMs: tRetrieve, queueMs: tQueue, generateMs: tGen, totalMs: Date.now() - t0 };
+  // firstTokenMs = how long the student stares at "Writing the answer…" before the first word appears.
+  const timings = { retrieveMs: tRetrieve, queueMs: tQueue, firstTokenMs: tFirst, generateMs: tGen, totalMs: Date.now() - t0 };
   try { fs.mkdirSync(path.join(__dirname, "logs"), { recursive: true }); fs.appendFileSync(path.join(__dirname, "logs", "queries.jsonl"), JSON.stringify({ t: new Date().toISOString(), q, retrievalQuery: rq === q ? null : rq, turns: history.length, scope, mode, retrieval, model: MODEL, sources: sources.map((s) => `${s.course}|${s.title}`), ...timings }) + "\n"); } catch {}
   return { text, sources, mode, retrieval, model: MODEL, timings };
 }
@@ -312,11 +344,16 @@ http.createServer(async (req, res) => {
       const ac = new AbortController();
       res.on("close", () => { if (!res.writableEnded) ac.abort(); });   // student closed the page: stop generating
       let started = false;
-      const emit = (o) => { if (!started) { res.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" }); started = true; } res.write(JSON.stringify(o) + "\n"); };
+      const emit = (o) => {
+        if (res.destroyed || res.writableEnded) return;
+        if (!started) { res.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" }); started = true; }
+        res.write(JSON.stringify(o) + "\n");
+      };
       try {
-        const out = await ask(body, { allowed: who.allowed, onMeta: (m) => emit({ type: "meta", ...m }), onToken: (t) => emit({ type: "token", t }) }, ac.signal);
+        const out = await ask(body, { allowed: who.allowed, onMeta: (m) => emit({ type: "meta", ...m }), onQueue: (n) => emit({ type: "queue", ahead: n }), onToken: (t) => emit({ type: "token", t }) }, ac.signal);
         emit({ type: "done", text: out.text, timings: out.timings });
       } catch (e) {
+        if (ac.signal.aborted) return res.end();               // the student pressed Stop or closed the page
         console.error("AI error:", e.msg || e.message || e);
         if (started) emit({ type: "error", error: errCode(e) }); else return send(isNet(e) ? 503 : e.code || 500, { error: errCode(e) });
       }
@@ -339,10 +376,43 @@ http.createServer(async (req, res) => {
   if (p === "/" || p === "\\") p = "/index.html";
   const file = path.join(PUB, p);
   if (file !== PUB && !file.startsWith(PUB + path.sep)) return send(403, "Forbidden", "text/plain");
-  fs.readFile(file, (err, buf) => err ? send(404, "Not found", "text/plain") : send(200, buf, MIME[path.extname(file)] || "application/octet-stream"));
+  serveStatic(req, res, file, send);
 }).listen(PORT, HOST, async () => {
   console.log(`LearnLink running at http://localhost:${PORT}  (LAN: bind ${HOST})`);
   console.log(`Knowledge base: ${kb.N} passages from ${Object.keys(kb.courses).length} courses`);
   const s = await status();
   console.log(s.ollama ? (s.modelInstalled ? `Model ready: ${MODEL}` : `Ollama is running but model "${MODEL}" is not installed. Run: ollama pull ${MODEL}`) : `Cannot reach Ollama at ${OLLAMA}. Start it with: ollama serve`);
+  if (s.modelInstalled) warmUp();
 });
+
+/* ---------- pages, scripts and styles ---------- */
+// Text files are sent gzipped (about a quarter of the size, which matters on phones over campus Wi-Fi).
+// Every file has an ETag: the browser asks "still the same?" and gets a tiny "304 Not Modified" instead of the
+// whole file. Scripts and pages are always re-checked, so an update shows up without Ctrl + Shift + R.
+const GZ_TYPES = new Set([".html", ".js", ".css", ".svg", ".json"]);
+const LONG_CACHE = new Set([".jpg", ".webp", ".png", ".ico", ".woff2"]);     // images: reused for a day without asking
+const files = new Map();                                                     // path -> { etag, raw, gz }
+function serveStatic(req, res, file, send) {
+  fs.stat(file, (err, st) => {
+    if (err || !st.isFile()) return send(404, "Not found", "text/plain");
+    const ext = path.extname(file).toLowerCase();
+    const etag = `W/"${st.size.toString(36)}-${Math.floor(st.mtimeMs).toString(36)}"`;
+    const headers = { "Content-Type": MIME[ext] || "application/octet-stream", ETag: etag, "Cache-Control": LONG_CACHE.has(ext) ? "public, max-age=86400" : "no-cache", Vary: "Accept-Encoding" };
+    if (req.headers["if-none-match"] === etag) { res.writeHead(304, headers); return res.end(); }
+    const gzip = GZ_TYPES.has(ext) && /\bgzip\b/.test(req.headers["accept-encoding"] || "");
+    const done = (c) => {
+      const buf = gzip ? c.gz : c.raw;
+      if (gzip) headers["Content-Encoding"] = "gzip";
+      headers["Content-Length"] = buf.length;
+      res.writeHead(200, headers); res.end(buf);
+    };
+    const c = files.get(file);
+    if (c && c.etag === etag) return done(c);
+    fs.readFile(file, (e, raw) => {
+      if (e) return send(404, "Not found", "text/plain");
+      const n = { etag, raw, gz: GZ_TYPES.has(ext) ? zlib.gzipSync(raw, { level: 9 }) : null };
+      files.set(file, n);
+      done(n);
+    });
+  });
+}

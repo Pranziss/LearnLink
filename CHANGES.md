@@ -1,5 +1,37 @@
 # Changes log
 
+## Nov 21, 2026: student.js split into parts
+
+No database change. Restart `npm start`, then press Ctrl + Shift + R once.
+
+- **`public/js/student.js` (2,192 lines) is now 9 files** in `public/js/`: `student-core.js`, `-signup`, `-chat`, `-ai`,
+  `-courses`, `-db`, `-settings`, `-network` and `-start` (30 to 380 lines each). The code was moved, not rewritten.
+  `student.html` loads them in that order; they share globals, so the order matters.
+- **Removed 10 old copies of functions** (`after`, `dots`, `reg`, `nxt`, `setV`, `rd`, `netUpd`, `netP`, `llm`, `aiH`). The file
+  had each of these twice; in one file the later copy replaces the earlier one everywhere, so the old copies never ran.
+  In separate files they would have run, so they had to go.
+- **Sign-up page:** the old 6-step form no longer flashes for a moment before the real 2-step form appears.
+
+## Nov 20, 2026: speed
+
+No database change. Restart `npm start`, then press Ctrl + Shift + R once (after that, updates show up on their own).
+
+- **Bug fix, `.env` comments (`server.js`):** a `# comment` after a value was read as part of the value, so
+  `TEMPERATURE=0.5   # ...` became "not a number" and Ollama used its own default (0.8). Comments are now ignored,
+  the same way `api/_env.php` already did. The model now really runs at your `TEMPERATURE`.
+- **Model loaded at start-up:** `server.js` loads the model into GPU memory as soon as it starts (it took 8.7 s on the
+  RTX 4050), so the first student no longer waits for it. It stays loaded for `KEEP_ALIVE` (new, default `4h`; was 30 minutes).
+- **Shorter longest answer:** `NUM_PREDICT` (new, default 300 tokens, was 400). The prompt already asks for 5 sentences at most.
+- **Place in line:** when someone else is being answered, the student sees "1 question ahead of yours…" instead of a
+  frozen "Writing the answer…".
+- **Stop button:** while an answer is written, the send button becomes ■. Stop keeps the text written so far, and the
+  server stops generating (or takes the question out of the line), so the next student is answered sooner.
+- **New timing `firstTokenMs`** in `logs/queries.jsonl`: how long until the first word appears.
+- **Pages load faster:** scripts, styles and pages are sent gzipped (`student.js` 101 KB → 31 KB) with an ETag, so a
+  return visit gets "304 Not Modified" instead of the whole file. Images are reused for a day.
+
+Measured on this PC, model already loaded, 4 questions sent at once: the first word after 0.3 to 1.6 s, each answer done in about 4 to 5 s.
+
 ## Nov 12, 2026: design pass
 
 No database change. Press Ctrl + Shift + R after updating.

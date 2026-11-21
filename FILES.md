@@ -90,7 +90,15 @@ starting content imported by `setup.php`. Each course is a folder of numbered ma
 | `css/admin.css` | Styles for the admin app. |
 | `js/gate.js` | Loaded first by the three app pages. Opened directly, they go to the login page; `?demo` shows the sample data with a DEMO label. Hides the page until real data has loaded, and shows "Can't reach LearnLink" if the server is down. |
 | `js/login.js` | Login, Google button, two-step sign-up, forgot-password flow. |
-| `js/student.js` | Whole student app: chat with streamed answers and citations, ratings, history, course spaces, settings (photo, appearance, password, export / delete my data). |
+| `js/student-core.js` | Student app, part 1: shared helpers, sample data (`?demo`), app state and `render()`. The student parts share globals, so `student.html` loads them in order, `student-start.js` last. |
+| `js/student-signup.js` | Student sign-up: Google or a code, then your details. |
+| `js/student-chat.js` | Sidebar, home screen and chat view. |
+| `js/student-ai.js` | Talks to the AI through the login page: streamed answers, sources, Stop. |
+| `js/student-courses.js` | A course's modules, the module viewer, and the course space (Ask / Summary / Quiz / Flashcards). |
+| `js/student-db.js` | Database calls: account, courses, saved chats, ratings. |
+| `js/student-settings.js` | Settings: photo, appearance, password, export / delete my data. |
+| `js/student-network.js` | Connection status: Wi-Fi icon, speed checks, offline notice. |
+| `js/student-start.js` | Loaded last: first draw, then loads the account, courses and chats. |
 | `js/faculty.js` | Faculty app: courses, modules and uploads, Insights charts, home page. Shows sample data only when opened without the server. |
 | `js/faculty-classroom.js` | Faculty "Classroom" tab: connect Google, link a class, review and publish drafts, sync history. |
 | `js/faculty-settings.js` | Faculty Settings page: photo, profile, appearance, password, log out. |

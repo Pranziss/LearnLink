@@ -193,13 +193,17 @@ async function relay(m) {
     send({ id: m.id, err: String(x && x.message || x) })
   }
 }
+// Answers being streamed, by id, so the student's Stop button can cancel one (the server then stops generating).
+var STREAMS = {};
 async function relayStream(m) {
   var f = $("fr"), send = function (o) {
     if (f.contentWindow) f.contentWindow.postMessage({ llmr: o }, "*")
-  };
+  }, ac = new AbortController();
+  STREAMS[m.id] = ac;
   try {
     var r = await fetch("/api/ai/stream", {
       method: "POST",
+      signal: ac.signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ q: m.q, scope: m.scope || null, history: m.history || [], gen: LLC.gen !== false,
         lv: LLC.lv })
@@ -226,8 +230,9 @@ async function relayStream(m) {
       })
     }
   } catch (x) {
-    send({ id: m.id, err: String(x && x.message || x) })
+    if (!ac.signal.aborted) send({ id: m.id, err: String(x && x.message || x) })
   }
+  delete STREAMS[m.id]
 }
 
 function launch(k) {
@@ -244,6 +249,7 @@ function launch(k) {
 window.addEventListener("message", function (e) {
   if (e.source === $("fr").contentWindow && e.data && e.data.llm) relay(e.data.llm);
   if (e.source === $("fr").contentWindow && e.data && e.data.llms) relayStream(e.data.llms);
+  if (e.source === $("fr").contentWindow && e.data && e.data.llmstop && STREAMS[e.data.llmstop]) STREAMS[e.data.llmstop].abort();
   if (e.source === $("fr").contentWindow && e.data && e.data.cfg) LLC = e.data.cfg;
   if (e.source === $("fr").contentWindow && e.data === "logout") {
     api("auth?action=logout", {}).catch (function () {});
