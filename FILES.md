@@ -14,8 +14,11 @@ LearnLink has two halves:
 
 | File | Purpose |
 | --- | --- |
+| `PROGRESS.md` | What is done, what is next, and open questions. Updated at the end of each work session. |
 | `server.js` | Main Node web server (no dependencies, Node 18+). Serves `public/`, runs `/api/ai` (retrieve passages, then stream the model's answer), `/api/status`, `/api/reload`, `/api/events` (live updates by Server-Sent Events) and `/api/notify`. Applies the rate limit and the one-at-a-time GPU queue, proxies the PHP API, forwards Google sign-in callbacks (`/oauth/*`) and starts the Classroom sync every `SYNC_MINUTES`. Writes `logs/queries.jsonl`. |
 | `retrieval.js` | Search engine for the course modules. Splits `modules/**/*.md` into passages, ranks them with BM25 (keywords) and Ollama embeddings (meaning), merges the two with Reciprocal Rank Fusion, and applies the relevance gates. Caches embeddings in `.cache/`. |
+| `prompts.js` | The prompt texts the model gets: the shared persona, and the rules for answering from the modules (with examples), general answers and small talk. Edit here to change how LearnLink talks; `server.js` decides which rules apply. |
+| `tools/compare-models.js` | Compares language models on the real retrieval and prompts (17 questions, private server copy on port 3199). Writes `logs/model-compare/`. See README, "Choosing the model". |
 | `package.json` | Project name and the `npm start` / `npm run dev` scripts. No packages to install. |
 | `.env.example` | Template for the settings file: model names, Ollama address, port, tuning, MySQL, Google OAuth clients, SMTP. Copy it to `.env`. |
 | `.env` | Your real settings and secrets (database password, Google secrets, SMTP password, `RELOAD_KEY`). **Not in git.** |

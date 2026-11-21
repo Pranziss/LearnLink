@@ -1,5 +1,26 @@
 # Changes log
 
+## Nov 21, 2026: gemma3:4b is the new model, and a tighter prompt
+
+No database change. Run `ollama pull gemma3:4b` and `ollama pull nomic-embed-text`, set `MODEL=gemma3:4b` in `.env`,
+then restart `npm start`.
+
+- **New `tools/compare-models.js`:** asks the same 17 questions (all six courses, Filipino and Taglish, a follow-up,
+  questions that are not in the modules, small talk) through the real retrieval and prompts, one model at a time,
+  and writes the answers side by side to `logs/model-compare/`. See README, "Choosing the model".
+- **Model: `gemma3:4b`** (was `llama3.1:8b`). Average full answer 2.0 s instead of 5.9 s, slowest 4.4 s instead of
+  15.3 s. It fits fully in the 6 GB GPU (llama3.1 8B did not; part of it ran on the CPU) and made the fewest factual
+  mistakes of the three models tried. `qwen3.5:4b` was in between on speed but made the most mistakes.
+- **Prompt (now in `prompts.js`, see below):** start with the answer (no "Great question!" / "Okay, let's break this down"); put [1] at the
+  end of the sentence it supports, never at the start; answer in Filipino or Taglish when the student writes that way
+  (with a Taglish example); no markdown; never claim personal memories ("I remember watching…"); check the math in
+  examples.
+- **New `prompts.js`:** the prompt texts moved out of `server.js` unchanged, so they are easy to find and edit.
+  `server.js` still decides which rules apply to a question.
+- **Small talk:** "hi kumusta ka", "hello po, good morning!" and "thanks po" are now recognized as small talk (short
+  friendly reply, no module search). Before, only a single greeting word was, so these went to a general answer.
+  "hi, what is the CIA triad" is still treated as a real question.
+
 ## Nov 21, 2026: student.js split into parts
 
 No database change. Restart `npm start`, then press Ctrl + Shift + R once.

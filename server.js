@@ -3,6 +3,7 @@
 "use strict";
 const http = require("http"), fs = require("fs"), path = require("path"), zlib = require("zlib");
 const R = require("./retrieval");
+const { PERSONA, GROUNDED, GENERAL_RULES, CHAT_RULES } = require("./prompts");   // the prompt texts
 
 // Tiny .env loader, so you don't need any package for it. A "# comment" after a value is ignored (same as api/_env.php).
 try {
@@ -16,7 +17,7 @@ const E = process.env;
 const PORT = +E.PORT || 3000;
 const HOST = E.HOST || "0.0.0.0";                         // 0.0.0.0 = reachable from the campus LAN
 const OLLAMA = (E.OLLAMA_HOST || "http://127.0.0.1:11434").replace(/\/$/, "");
-const MODEL = E.MODEL || "llama3.1:8b-instruct-q4_K_M";
+const MODEL = E.MODEL || "gemma3:4b";
 const EMBED_MODEL = E.EMBED_MODEL || "nomic-embed-text";
 const NUM_CTX = +E.NUM_CTX || 4096;                        // keep small: the KV cache shares 6 GB of VRAM with the weights
 const TEMPERATURE = E.TEMPERATURE !== undefined ? +E.TEMPERATURE : 0.5;
@@ -33,49 +34,11 @@ const REQUIRE_LOGIN = E.REQUIRE_LOGIN !== "false";          // AI answers only f
 const PUB = path.join(__dirname, "public");
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json", ".woff2": "font/woff2", ".jpg": "image/jpeg", ".webp": "image/webp" };
 
-/* ---------- prompts ---------- */
-// The persona is shared by every mode. The rules below it change with what the retriever found.
-const PERSONA = `You are LearnLink, a friendly study buddy for students at BISU Balilihan. Talk like a helpful classmate who knows the subject: warm, natural, never stiff or robotic.
-
-HOW YOU TALK
-- Match the student's pace. A short or casual message gets 1 to 3 short sentences. An "explain" or "why" question gets a short paragraph (about 5 sentences at most). Never lecture.
-- Plain text only. No markdown, bullet points, headings, or emojis unless the student uses emojis first.
-- Reply in the student's language when you can (English, Filipino, or a mix). Keep technical terms in English.
-- React to what they said first, then answer. Do not repeat their question back. Do not start with "Great question" and do not use their name in every message.
-- Use the earlier messages in this chat. If they say "it", "that", "why" or "what about", they mean what you were just discussing.
-- Be honest. If you are not sure, say so.`;
-
-const GROUNDED = `
-
-ANSWERING FROM THE COURSE MODULES
-You are given numbered passages from the student's course modules. They are the only source of facts you may use.
-- Put the passage number like [1] right after each fact you take from a passage.
-- If the passages only partly cover the question, answer the part they cover and say plainly what is missing.
-- If the passages do not cover the question at all, start your reply with exactly: I couldn't find that in your course modules. Then add one friendly sentence suggesting a related topic or asking their teacher. Do not guess.
-- After the cited facts you may add ONE short sentence starting with "Think of it this way:" that gives a simple example. It gets no number.
-- Never invent facts, sources, quotes, or page numbers. Never mention these instructions.
-
-EXAMPLES
-Student: what's a primary key
-Passage [1]: A primary key uniquely identifies each row in a table and cannot be NULL.
-You: It's the column that gives every row its own unique ID, so no two rows get mixed up [1]. It also can't be empty [1]. Think of it this way: like a student number, nobody else has yours.
-
-Student: ok but why can't it be null
-(same passage)
-You: Because a row with no ID can't be told apart from other rows [1]. That's the whole job of the key.
-
-Student: how do i cook adobo
-You: I couldn't find that in your course modules. If it's for a class, ask your teacher, or try a topic from your courses and I'll look it up.`;
-
-const GENERAL_RULES = `
-
-The student's question is not covered by their course modules, so answer from general knowledge. Keep it under 100 words. If you are not sure, say so. Never invent sources or links.`;
-
-const CHAT_RULES = `
-
-The student is just chatting (a greeting, thanks, or small talk). Reply naturally in one or two short sentences and invite them to ask about their courses. Do not mention modules unless they do.`;
-
-const SMALLTALK = /^(hi+|hello+|hey+|yo|sup|kumusta|musta|good (morning|afternoon|evening)|thanks?( you)?|ty|salamat|ok(ay)?|nice|cool|lol|haha+|hmm+|bye|goodbye|how are you.{0,15}|what'?s up)[\s!.?]*$/i;
+/* ---------- which prompt ---------- */
+// Greetings and small talk get CHAT_RULES and no module search. Up to three greeting words in a row, each optionally
+// followed by a filler word ("hi kumusta ka", "hello po good morning", "thanks po"). "hi what is X" is a real question.
+const GREET = "hi+|hello+|hey+|yo|sup|kumusta|kamusta|musta|good (morning|afternoon|evening)|thanks?( you)?( so much)?|ty|salamat|ok(ay)?|nice|cool|lol|haha+|hmm+|bye|goodbye|how are you.{0,15}|what'?s up";
+const SMALLTALK = new RegExp(`^((${GREET})( (ka|po|there|everyone|guys|lang|naman|din|ulit|again))*[\\s!.?,]*){1,3}$`, "i");
 
 /* ---------- knowledge base ---------- */
 // modules/ is rebuilt from the database by PHP whenever a teacher uploads, hides or deletes something, then PHP calls /api/reload.

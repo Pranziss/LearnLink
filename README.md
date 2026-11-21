@@ -9,7 +9,7 @@ drafts; the teacher publishes them into a module. That sync is the only part tha
 
 ```
 student browser ──► server.js ──► retrieval.js (BM25 keywords + embeddings, fused with RRF)
-                        │    └──► Ollama (local model, e.g. llama3.1 8B on an RTX 4050)
+                        │    └──► Ollama (local model, e.g. gemma3 4B on an RTX 4050)
                         └──► PHP api/ (Laragon) ──► MySQL
                                    └──► Google Classroom + Drive (only when online, for the sync)
 ```
@@ -19,7 +19,7 @@ student browser ──► server.js ──► retrieval.js (BM25 keywords + embe
 1. Install **Node.js 18+** and **Ollama**. Start Ollama (it runs in the tray, or run `ollama serve`).
 2. Pull the models once:
    ```
-   ollama pull llama3.1:8b-instruct-q4_K_M
+   ollama pull gemma3:4b
    ollama pull nomic-embed-text
    ```
    (Any model from `ollama list` works. Set `MODEL=` in `.env`. Try `qwen3:4b` too, see "Choosing the model".)
@@ -83,9 +83,16 @@ test with several devices at once to see how response time changes with simultan
 
 ## Choosing the model (6 GB VRAM)
 
-`llama3.1:8b` at 4-bit is about 5 GB, so it fits only with a small context (`NUM_CTX=4096`). A 3-4B model is faster
-and leaves room. Run the same faculty-verified questions through each candidate and compare correctness, whether it
-refuses when the answer is not in the modules, and speed. While a request runs, `ollama ps` should show `100% GPU`.
+The default is `gemma3:4b` (2.9 GB, fully on the GPU). Compared on Nov 21, 2026 with 17 questions across the courses
+(RTX 4050 laptop, hybrid retrieval), average time for a full answer: `gemma3:4b` 2.0 s, `qwen3.5:4b` 3.2 s,
+`llama3.1:8b` 5.9 s (too big for 6 GB: part of it ran on the CPU). gemma also made the fewest factual mistakes;
+qwen3.5 made the most. To compare models yourself (Ollama running, nothing else on port 3199):
+
+    node tools/compare-models.js gemma3:4b qwen3.5:4b llama3.1:8b-instruct-q4_K_M
+
+It runs a private copy of the server for each model (real retrieval and prompts; the real logs, database and
+Classroom sync are not touched) and writes the answers side by side to `logs/model-compare/`. Read them: the
+automatic checks only catch missing citations and wrong modes. While a request runs, `ollama ps` should show `100% GPU`.
 If it shows a CPU/GPU split, the model is too big for the card and answers will be slow.
 Do not use the "uncensored" or "abliterated" models for a school system.
 
