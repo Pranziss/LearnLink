@@ -3,7 +3,7 @@
 What is done, what is next, and what is still open. Updated at the end of each work session.
 For the details of each change (files, setup steps), see `CHANGES.md`. For every file, see `FILES.md`.
 
-Last updated: **Nov 21, 2026**
+Last updated: **Nov 27, 2026**
 
 ## Goal right now: a demo that works (mentor feedback, Nov 20)
 
@@ -17,7 +17,7 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 1. [ ] **Real Summary, Quiz and Flashcards** in the course space, made by the AI from the selected modules
    (they say "Coming soon" now). New file `public/js/student-quiz.js`. If time runs out: hide the three buttons.
    *Depends on the demo date: still unknown.*
-2. [ ] **Clickable citations:** clicking [1] opens the module and highlights the passage the answer came from.
+2. [x] **Clickable citations, done Nov 27:** clicking [1] opens the module and highlights the passage the answer came from.
 3. [ ] **Demo content and prep:**
    - [ ] real modules for 2 or 3 demo courses (IT 313 is placeholder text)
    - [ ] a pre-flight check (Ollama, MySQL, server, model loaded) before presenting
@@ -50,6 +50,25 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 - [ ] Speed meter on the student page tests public CDNs; point it at the campus server.
 
 ## Done
+
+### Nov 27, 2026
+- **Clickable citations:** tapping [1] opens the Sources panel on that source (as before); its "Open module" opens that exact module (the server now sends `courseId` and the
+  module number with each source), highlights the paragraph(s) the answer used and scrolls to it.
+  Older saved chats find the module by title; if it can't be found, no Open module button.
+  Checked offline: all 52 module chunks match a paragraph in the viewer.
+- **Module viewer:** keeps its scroll position across redraws; a "## heading" with text right under it no longer
+  shows the whole block as a heading.
+- **Module viewer slides in and out** (from the right on desktop, from the bottom on phones) instead of popping in
+  with the whole page replaying its entrance.
+- **Student app code cleaned up** (2,039 → 1,844 lines, same behaviour): readable names everywhere (`S.sourcesOpen`
+  instead of `S.pn`, courses as objects instead of arrays), every file starts with what it does, `student-core.js`
+  explains how the parts fit and every state field. The three layers of `ask()` patching each other are now one
+  `ask()` that calls `askLive()` or `askDemo()`. All sample data and canned answers moved to the new
+  `student-demo.js`. Each course-space tab has its own function, ready for the real Summary / Quiz / Flashcards.
+  Removed code that never ran: the network popup with speed charts and its "Presentation demo" simulator (no button
+  opened it), the profile menu, web-search sample answers, an older non-streaming answer path.
+  Checked with a scripted click-through (91 steps: chat, sources, viewer, saved chats, ratings, errors, course space,
+  settings, demo mode, sign-up) before and after: same screens.
 
 ### Nov 21, 2026
 - **Smoother on phones:** no more page "reload" flash, Sources and the menu slide in and out, and the chat keeps
