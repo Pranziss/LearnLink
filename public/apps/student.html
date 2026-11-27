@@ -14,8 +14,9 @@
 <body>
   <div id="root"></div>
   <div id="tw" aria-live="polite"></div>
-  <!-- The student app, in parts. They share globals: keep this order, and student-start.js last. -->
+  <!-- The student app, in parts. They share globals: keep this order (core first, start last). See student-core.js. -->
   <script src="../js/student-core.js"></script>
+  <script src="../js/student-demo.js"></script>
   <script src="../js/student-signup.js"></script>
   <script src="../js/student-chat.js"></script>
   <script src="../js/student-ai.js"></script>

@@ -1,319 +1,241 @@
-/* LearnLink student app, part 4: talking to the AI through the login page (streamed answers, sources). */
-var CFG = Object.assign({ web: false, gen: true, lv: 3 }, window.LLCFG || (window.parent !== window &&
-  window.parent.LLCFG) || {});
+/* =====================================================================================================================
+   LearnLink student app: asking the AI
+   ---------------------------------------------------------------------------------------------------------------------
+   The app runs inside login.html, which does the actual requests to the Node server (js/login.js: relay() and
+   relayStream()). The two talk with postMessage:
+     app -> login.html   { llms: { id, q, history } }   ask, streamed answer      (askStream)
+                         { llm:  { id, q, ctx } }       ask, whole answer at once  (askOnce, used by the course space)
+                         { llmstop: id }                stop a streamed answer
+     login.html -> app   { llmr: { id, ev } }           one streamed event: queue / meta / token / done / error
+                         { llmr: { id, text, data } }   the whole answer
+                         { llmr: { id, err } }          it failed
+   Streamed events, from server.js:
+     { type: "queue", ahead }                         questions ahead of this one (the GPU answers one at a time)
+     { type: "meta", mode, sources, retrieval, model } what kind of answer is coming, and the passages it uses
+     { type: "token", t }                             the next bit of text
+     { type: "done", text, timings }                  the finished, cleaned-up text
+     { type: "error", error }                         a code such as "model_unreachable" (see ERRORS below)
+   mode: "grounded" (from the modules, with sources), "general" (AI's own knowledge), "chat" (small talk),
+         "none" (not in the modules, and general answers are turned off)
+   ===================================================================================================================== */
 
-function webAns(t) {
-  if (/world cup/i.test(t)) return {
-    a: [
-      ["Argentina won the 2022 FIFA World Cup in Qatar.", "1"],
-      ["They beat France in the final, which ended 3-3 after extra time and went to penalties.", "12"]
-    ],
-    l: [
-      ["2022 World Cup final recap", "fifa.com", "Argentina and France drew 3-3 before the penalty shootout."],
-      ["FIFA World Cup 2022", "britannica.com", "Argentina’s third title, and its first since 1986."]
-    ]
+/* ---------- the bridge to login.html ---------- */
+var REQUESTS = {}, nextRequestId = 0;   // id -> handler for that request's replies
+
+window.addEventListener("message", function (e) {
+  var m = e.data && e.data.llmr;
+  if (m && REQUESTS[m.id]) REQUESTS[m.id](m)
+});
+
+// Ask and get the whole answer at once (a Promise of the text). scope: a course name, or null for all courses.
+function askOnce(q, scope) {
+  return new Promise(function (resolve, reject) {
+    var id = ++nextRequestId;
+    REQUESTS[id] = function (m) { delete REQUESTS[id]; m.err ? reject(m.err) : resolve(m.text) };
+    parent.postMessage({ llm: { id: id, q: q, ctx: scope } }, "*");
+    setTimeout(function () { if (REQUESTS[id]) { delete REQUESTS[id]; reject("timeout") } }, 60000)
+  })
+}
+
+// Ask and get the answer as it is written: onEvent(event) for each streamed event. Returns the request id (for Stop).
+function askStream(q, history, onEvent) {
+  var id = ++nextRequestId;
+  REQUESTS[id] = function (m) {
+    if (m.ev) onEvent(m.ev);
+    else if (m.err) onEvent({ type: "error", error: m.err })
   };
-  return {
-    a: [
-      ["Here is a summary of what the web says about this topic. This demo uses sample text.", "1"],
-      ["Check the linked sources before using it in coursework.", "2"]
-    ],
-    l: [
-      ["Overview of the topic", "wikipedia.org", "Sample excerpt from a web page."],
-      ["Further reading", "britannica.com", "Sample excerpt from a second page."]
-    ]
-  }
-}
-
-function webH(t) {
-  var w = webAns(t), mi = MS.push({ t: "Web results", w: 1, c: w.l }) - 1;
-  S.mi = mi;
-  S.pn = true;
-  S.hn = 0;
-  return '<span class="chip" style="background:var(--pk);color:var(--ac)">From the web (sample)</span><p style="margin:10px 0 8px;line-height:1.8">' +
-    w.a.map(function (x) {
-    return E(x[0]) + " " + x[1].split("").map(function (n) {
-      return '<button class="ct" onclick="S.mi=' + mi + ";S.hn=" + n + ';S.pn=true;render()">' + n + "</button>"
-    }).join("")
-  }).join(" ") + '</p><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">' + w.l.map(function (x) {
-    return '<span class="chip n" style="font-weight:600">' + x[1] + "</span>"
-  }).join("") + '</div><p class="sm" style="margin:0">Your modules didn’t cover this. Verify before using it in coursework.</p>'
-}
-
-function blockedH() {
-  return '<span class="chip w">Not covered by your modules</span><p style="margin:10px 0 0;line-height:1.7">Your school has turned off answers outside the course modules. Try rewording your question with a course topic.</p>'
-}
-var LQ = {}, LI = 0;
-
-function llm(q, ctx) {
-  return new Promise(function (res, rej) {
-    var id = ++ LI;
-    LQ[id] = [res, rej];
-    parent.postMessage({ llm: { id: id, q: q, ctx: ctx } }, "*");
-    setTimeout(function () {
-      if (LQ[id]) {
-        delete LQ[id];
-        rej("timeout")
-      }
-    }, 60000)
-  })
-}
-
-window.addEventListener("message", function (e) {
-  var m = e.data && e.data.llmr;
-  if (!m || !LQ[m.id]) return;
-  var p = LQ[m.id];
-  delete LQ[m.id];
-  if (m.err) p[1](m.err);
-  else p[0](p.x ? m.data : m.text)
-});
-
-function ctxOf(tp) {
-  return tp.m.map(function (m, i) {
-    return { n: i + 1, t: MT(tp.c, m), x: C(tp.c, m).s.join(" ") }
-  })
-}
-
-function aiMH(x, mi, tp) {
-  var ps = String(x || "").trim().split(/\n{2,}/).map(function (p) {
-    return '<p style="margin:0 0 8px;line-height:1.8">' + E(p).replace(/\n/g, "<br>").replace(/\[(\d)\]/g,
-      function (a, n) {
-      return +n >= 1 && +n <= tp.m.length ? '<button class="ct" onclick="S.mi=' + mi + ";S.hn=" + n + ';S.pn=true;render()">' +
-        n + "</button>" : ""
-    }) + "</p>"
-  }).join("");
-  return '<span class="chip">From your modules + AI · ' + CO[tp.c][0] + " · " + CO[tp.c][2] + '</span><div style="margin:10px 0 6px">' +
-    ps + '</div><p class="sm" style="margin:0 0 8px">Numbered parts come from your modules. The rest is the AI’s own explanation.</p><button style="font-size:12px;padding:4px 10px" onclick="S.mi=' +
-    mi + ';S.pn=true;S.hn=0;render()">' + tp.m.length + " sources</button>"
-}
-
-function aiH(x) {
-  var src = ((x && x.src) || []).filter(function (s) {
-    return /^https?:\/\//i.test(s.url)
-  }), t = (x && x.text !== undefined) ? x.text : x, ps = String(t || "").trim().split(/\n{2,}/).map(function (p) {
-    return '<p style="margin:0 0 8px;line-height:1.7">' + E(p).replace(/\n/g, "<br>") + "</p>"
-  }).join(""), ln = src.map(function (s) {
-    var d = s.url;
-    try {
-      d = new URL(s.url).hostname.replace(/^www\./, "")
-    } catch (e) {}
-    return '<a class="chip n" style="font-weight:600;text-decoration:none" href="' + E(s.url).replace(/"/g,
-      "%22") + '" target="_blank" rel="noopener noreferrer">' + E(d) + "</a>"
-  }).join(" ");
-  return '<span class="chip n">' + (src.length ? "From the web + AI" : "General answer · AI, not from your modules") +
-    '</span><div style="margin:10px 0 4px">' + ps + "</div>" + (ln ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">' +
-    ln + "</div>" : "") + '<p class="sm" style="margin:0">' + (src.length ? "Links come from a web search. Check them before relying on the answer." : "Your modules didn’t cover this. The AI can’t browse the web, so verify important facts.") +
-    "</p>"
-}
-
-/* ===== LearnLink chat: remembers the conversation, streams the answer as it is written ===== */
-var SQ = {};
-window.addEventListener("message", function (e) {
-  var m = e.data && e.data.llmr;
-  if (!m || !SQ[m.id]) return;
-  if (m.ev) SQ[m.id](m.ev);
-  else if (m.err) SQ[m.id]({ type: "error", error: m.err })
-});
-
-function llmx(q, scope) {
-  return new Promise(function (res, rej) {
-    var id = ++ LI;
-    LQ[id] = [res, rej];
-    LQ[id].x = 1;
-    parent.postMessage({ llm: { id: id, q: q, scope: scope || null } }, "*");
-    setTimeout(function () {
-      if (LQ[id]) {
-        delete LQ[id];
-        rej("timeout")
-      }
-    }, 180000)
-  })
-}
-
-function streamAsk(q, history, on) {
-  var id = ++ LI;
-  SQ[id] = on;
   parent.postMessage({ llms: { id: id, q: q, scope: null, history: history } }, "*");
   return id
-}(function () {
-  var st = document.createElement("style");
-  st.textContent = ".caret{display:inline-block;width:7px;height:1.05em;background:var(--ac);margin-left:2px;vertical-align:-3px;border-radius:2px;animation:cblink 1s steps(2) infinite}@keyframes cblink{50%{opacity:0}}@media (prefers-reduced-motion:reduce){.caret{animation:none}}";
-  document.head.appendChild(st)
-})();
-// What the server gets as memory: the last few turns, as plain text.
-function hist() {
+}
+
+// What the server gets as memory: the last few turns before the question just asked, as plain text.
+function chatHistory() {
   var h = [];
-  CH.forEach(function (m) {
-    if (m.u !== undefined) h.push({ role: "user", content: m.u });
-    else if (m.t) h.push({ role: "assistant", content: m.t })
+  CHAT.slice(0, -1).forEach(function (m) {
+    if (m.question !== undefined) h.push({ role: "user", content: m.question });
+    else if (m.text) h.push({ role: "assistant", content: m.text })
   });
   return h.slice(-8)
 }
-// Turn the model's text into safe HTML. [1] becomes a button that opens that source. **bold** and *italics* marks are
-// dropped (the server does the same to the finished answer; this covers the words still streaming in).
-function pbody(text, mi, caret) {
-  text = String(text).replace(/\]\s+(?=[.,;:!?])/g, "]").replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");
-  return E(text).replace(/\n+/g, "<br>").replace(/\[(\d+)\]/g, function (a, n) {
-    return mi >= 0 ? '<button class="ct" aria-label="Open source ' + n + '" onclick="cite(' + mi + "," + n + ')">' + n +
-      "</button>" : ""
-  }) + (caret ? '<span class="caret"></span>' : "")
-}
 
-/* ---------- clickable citations ----------
-   Each source from the server says which course (courseId) and module (pos) it came from. Tapping [1] opens that
-   module in the viewer, scrolled to the passage the answer used, which is highlighted. If the module can't be found
-   in this student's course list (or for older saved chats without that info), the Sources panel opens instead. */
-function srcLoc(x) {
-  var ci = -1, m = -1;
-  CO.forEach(function (c, i) { if (ci < 0 && (x.courseId && c[6] ? c[6] === x.courseId : c[0] === x.course)) ci = i });
-  if (ci > -1) {
-    var c = CO[ci];
-    m = x.pos && c[5] ? c[5].indexOf(+x.pos) : -1;
-    if (m < 0) m = c[3].map(function (s) { return String(s).toLowerCase() })
-      .indexOf(String(x.title || "").replace(/^Module\s+\d+:\s*/i, "").toLowerCase());   // older saved chats: by title
-  }
-  return m < 0 ? [-1, -1] : [ci, m]
-}
-// One Sources entry per passage: [module title, "Course · 82% match", passage, course index, module index, []].
-function srcRows(M) {
-  return M.sources.map(function (x) {
-    var L = srcLoc(x);
-    return [x.title, E(x.course) + " · " + Math.round(Math.max(x.bm25, x.dense || 0) * 100) + "% match", x.text, L[0], L[1], []]
-  })
-}
-function cite(mi, n) {
-  var s = MS[mi] && MS[mi].c[n - 1];
-  if (LIVE && s && s[3] > -1) {
-    S.vw = { c: s[3], m: s[4], h: [], p: s[2], n: n };
-    S.mi = mi;
-    S.hn = n;
-  } else {
-    S.mi = mi;
-    S.hn = n;
-    S.pn = true;
-  }
-  render()
-}
+/* ---------- asking (live) ---------- */
+// Plain words for students when an answer fails. What to fix on the server is in the README and the server's log.
+var ERRORS = {
+  no_server: ["Can’t reach LearnLink", "LearnLink didn’t answer. Check that you’re on the campus Wi‑Fi, then ask again."],
+  model_unreachable: ["The AI is busy or offline", "Your question was not answered. Try again in a minute. If it keeps happening, tell your teacher."],
+  too_many_requests: ["Slow down a little", "You’re asking very quickly. Wait a few seconds, then ask again."],
+  not_logged_in: ["You were logged out", "Log in again to keep asking. Your saved chats are still there."],
+  other: ["Something went wrong", "Your question was not answered. Try asking again."]
+};
+ERRORS.timeout = ERRORS.model_unreachable;
+var RETRY = [];   // questions behind "Ask again" buttons (kept out of the HTML)
 
-function finalH(M, text, mi) {
-  var cited = /\[\d+\]/.test(text), nf = /couldn.t find that in your course modules/i.test(text);
-  if (M.mode === "none") return '<span class="chip w">Not in your modules</span><p style="margin:10px 0 0;line-height:1.7">I couldn’t find this in your course modules. Try rewording the question with a topic from your course, or ask your instructor to add it.</p>';
-  if (M.mode === "grounded" && nf && !cited) return '<span class="chip w">Not in your modules</span><p style="margin:10px 0 0;line-height:1.7">' +
-    pbody(text, -1) + "</p>";
-  if (M.mode === "general") return '<span class="chip n">General answer · AI, not from your modules</span><p style="margin:10px 0 4px;line-height:1.7">' +
-    pbody(text, -1) + '</p><p class="sm" style="margin:0">Your modules didn’t cover this. Verify before using it in coursework.</p>';
-  if (M.mode === "chat") return '<p style="margin:0;line-height:1.7">' + pbody(text, -1) + "</p>";
-  return '<span class="chip">From your modules · ' + E(M.sources[0].course) + '</span><p style="margin:10px 0;line-height:1.8">' +
-    pbody(text, mi) + '</p><p class="sm" style="margin:0 0 8px">Numbered parts come from your modules. Any “Think of it this way” line is the AI’s own example.</p><button style="font-size:12px;padding:4px 10px" onclick="S.mi=' +
-    mi + ';S.pn=true;S.hn=0;render()">' + M.sources.length + " source" + (M.sources.length > 1 ? "s" : "") +
-    "</button>"
-}
-var _askBase = ask, RETRY = [];   // RETRY: questions behind "Ask again" buttons (kept out of the HTML)
-ask = function () {
-  var e = $("qi");
-  if (!e || BZ || !e.value.trim()) return;
-  var q = e.value.trim();
-  if (window.parent === window) return _askBase();
-  // standalone preview without a server
-  e.value = "";
-  if (S.v === "home") {
-    S.v = "chat";
-    H.unshift(q.slice(0, 40))
-  }
-  var history = hist();
-  CH.push({ u: q });
-  var ty = { typ: 1, h: dots3("Thinking…") };
-  CH.push(ty);
-  BZ = 1;
+// The question is already in CHAT (ask() in student-chat.js). Stream the answer into a placeholder message.
+function askLive(q) {
+  var history = chatHistory();
+  var slot = { typing: true, html: typingDots("Thinking…") };
+  CHAT.push(slot);
+  BUSY = true;
   render();
-  var M = null, text = "", mi = -1, live = false, finished = false, reqId = 0;
-  var guard = setTimeout(function () {
-    if (!M) fail("no_server")
-  }, 25000);
-  // Stop: cancel the request (the server stops generating) and keep whatever was written so far.
-  STOP = function () {
-    if (finished) return;
+
+  var meta = null, text = "", sourcesIndex = -1, started = false, finished = false, requestId = 0;
+  // The server sends its first event within seconds; if nothing comes, say so instead of waiting forever.
+  var guard = setTimeout(function () { if (!meta) fail("no_server") }, 25000);
+
+  function put(message) {   // replace the placeholder with the final message
+    var i = CHAT.indexOf(slot);
+    if (i > -1) CHAT[i] = message;
+    return i > -1
+  }
+  function end() {
     finished = true;
     clearTimeout(guard);
-    if (reqId) parent.postMessage({ llmstop: reqId }, "*");
-    var i = slot();
-    if (i > -1) CH[i] = text.trim() && M ? { h: finalH(M, text, mi) + '<p class="sm" style="margin:6px 0 0">Stopped.</p>', t: text }
-      : { h: '<p class="sm" style="margin:0">Stopped.</p>' };
-    BZ = 0;
+    BUSY = false;
     STOP = null;
     render()
-  };
-  // the server answers with its first event within seconds
-  function slot() {
-    return CH.indexOf(ty)
   }
   function fail(code) {
     if (finished) return;
-    finished = true;
-    clearTimeout(guard);
-    var i = slot();
-    // Plain words for students. What to fix on the server is in the README and the server's own log.
-    var why = code === "no_server" ? ["Can’t reach LearnLink", "LearnLink didn’t answer. Check that you’re on the campus Wi‑Fi, then ask again."] :
-      code === "model_unreachable" || code === "timeout" ? ["The AI is busy or offline", "Your question was not answered. Try again in a minute. If it keeps happening, tell your teacher."] :
-      code === "too_many_requests" ? ["Slow down a little", "You’re asking very quickly. Wait a few seconds, then ask again."] :
-      code === "not_logged_in" ? ["You were logged out", "Log in again to keep asking. Your saved chats are still there."] :
-      ["Something went wrong", "Your question was not answered. Try asking again."];
-    if (i > -1) CH[i] = {
-      h: '<span class="chip w">' + why[0] + '</span><p style="margin:10px 0 0;line-height:1.7">' + why[1] + "</p>" +
-        (code === "not_logged_in" ? '<button class="p" style="margin-top:8px" onclick="parent.postMessage(\'logout\',\'*\')">Log in again</button>' :
-          '<button style="margin-top:8px" onclick="$(\'qi\').value=RETRY[' + (RETRY.push(q) - 1) + '];ask()">Ask again</button>')
-    };
-    BZ = 0;
-    STOP = null;
-    render()
+    var why = ERRORS[code] || ERRORS.other;
+    put({
+      html: chip(why[0], "w") + '<p style="margin:10px 0 0;line-height:1.7">' + why[1] + "</p>" +
+        (code === "not_logged_in" ? '<button class="p" style="margin-top:8px" onclick="logOut()">Log in again</button>' :
+          '<button style="margin-top:8px" onclick="$(\'askInput\').value=RETRY[' + (RETRY.push(q) - 1) + '];ask()">Ask again</button>')
+    });
+    end()
   }
-  reqId = streamAsk(q, history, function (ev) {
+  // Stop: cancel the request (the server stops generating) and keep whatever was written so far.
+  STOP = function () {
+    if (finished) return;
+    if (requestId) parent.postMessage({ llmstop: requestId }, "*");
+    put(text.trim() && meta ? { html: answerHtml(meta, text, sourcesIndex) + '<p class="sm" style="margin:6px 0 0">Stopped.</p>', text: text }
+      : { html: '<p class="sm" style="margin:0">Stopped.</p>' });
+    end()
+  };
+
+  requestId = askStream(q, history, function (ev) {
     if (finished) return;
     if (ev.type === "queue") {
-      // Others are being answered first (the server answers one at a time). 0 = it's our turn now.
-      if (!live) {
-        ty.h = dots3(ev.ahead > 0 ? (ev.ahead === 1 ? "1 question ahead of yours…" : ev.ahead + " questions ahead of yours…") : "Writing the answer…");
+      // Others are being answered first. 0 = it's our turn now.
+      if (!started) {
+        slot.html = typingDots(ev.ahead > 0 ? (ev.ahead === 1 ? "1 question ahead of yours…" : ev.ahead + " questions ahead of yours…") : "Writing the answer…");
         render()
       }
     } else if (ev.type === "meta") {
       clearTimeout(guard);
-      M = ev;
-      if (M.mode === "grounded") mi = MS.push({ t: "Sources · " + M.sources[0].course, r: 1, c: srcRows(M) }) - 1;
-      ty.h = dots3(M.mode === "none" ? "" : "Writing the answer…");
+      meta = ev;
+      if (meta.mode === "grounded") sourcesIndex = SOURCES.push({ title: meta.sources[0].course, live: true, items: sourceItems(meta.sources) }) - 1;
+      slot.html = typingDots(meta.mode === "none" ? "" : "Writing the answer…");
       render()
     } else if (ev.type === "token") {
       text += ev.t;
-      if (!live) {
-        live = true;
-        ty.typ = 0;
-        ty.live = 1;
-        ty.h = pbody(text, mi, true);
+      if (!started) {
+        // first words: turn the placeholder into the live answer
+        started = true;
+        slot.typing = false;
+        slot.streaming = true;
+        slot.html = answerText(text, sourcesIndex, true);
         render()
       } else {
+        // later words: only update the answer itself, not the whole page
         var el = $("live");
         if (el) {
-          el.innerHTML = pbody(text, mi, true);
-          var ms = $("msgs");
-          if (ms) ms.scrollTop = ms.scrollHeight
+          el.innerHTML = answerText(text, sourcesIndex, true);
+          var chat = $("msgs");
+          if (chat) chat.scrollTop = chat.scrollHeight
         }
       }
     } else if (ev.type === "done") {
-      finished = true;
-      clearTimeout(guard);
       text = ev.text || text;
-      var i = slot();
-      if (i > -1) {
-        CH[i] = { h: finalH(M, text, mi), t: M.mode === "none" ? "" : text, md: M.mode };
-        saveTurn(q, text, M, ev.timings, CH[i]);
-        if (M.mode === "grounded" && /\[\d+\]/.test(text)) {
-          S.mi = mi;
-          S.pn = innerWidth > 760;   // on a phone the panel would cover the answer: the Sources tab and [1] open it
-          S.hn = 0
+      var message = { html: answerHtml(meta, text, sourcesIndex), text: meta.mode === "none" ? "" : text, mode: meta.mode };
+      if (put(message)) {
+        saveTurn(q, text, meta, ev.timings, message);
+        if (meta.mode === "grounded" && /\[\d+\]/.test(text)) {
+          S.sourcesIndex = sourcesIndex;
+          S.sourcesOpen = !isPhone();   // on a phone the panel would cover the answer: the Sources tab and [1] open it
+          S.sourceMarked = 0
         }
       }
-      BZ = 0;
-      STOP = null;
-      render()
+      end()
     } else if (ev.type === "error") fail(ev.error)
-  });
-};
+  })
+}
+
+/* ---------- answers as HTML ---------- */
+// The model's text as safe HTML. [1] becomes a button that opens that source (when sourcesIndex >= 0; otherwise the
+// marks are dropped). **bold** and *italics* marks are removed: the server does the same to the finished answer,
+// this covers the words still streaming in. caret: the blinking cursor while it's being written.
+function answerText(text, sourcesIndex, caret) {
+  text = String(text).replace(/\]\s+(?=[.,;:!?])/g, "]").replace(/\*\*([^*\n]+)\*\*/g, "$1")
+    .replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");
+  return esc(text).replace(/\n+/g, "<br>").replace(/\[(\d+)\]/g, function (a, n) {
+    return sourcesIndex >= 0 ? citeButton(sourcesIndex, n) : ""
+  }) + (caret ? '<span class="caret"></span>' : "")
+}
+
+// A finished answer: a label saying where it came from, the text, and the sources button.
+function answerHtml(meta, text, sourcesIndex) {
+  var cited = /\[\d+\]/.test(text), notFound = /couldn.t find that in your course modules/i.test(text);
+  if (meta.mode === "none") return chip("Not in your modules", "w") + '<p style="margin:10px 0 0;line-height:1.7">I couldn’t find this in your course modules. Try rewording the question with a topic from your course, or ask your instructor to add it.</p>';
+  if (meta.mode === "grounded" && notFound && !cited) return chip("Not in your modules", "w") + '<p style="margin:10px 0 0;line-height:1.7">' + answerText(text, -1) + "</p>";
+  if (meta.mode === "general") return chip("General answer · AI, not from your modules", "n") + '<p style="margin:10px 0 4px;line-height:1.7">' +
+    answerText(text, -1) + '</p><p class="sm" style="margin:0">Your modules didn’t cover this. Verify before using it in coursework.</p>';
+  if (meta.mode === "chat") return '<p style="margin:0;line-height:1.7">' + answerText(text, -1) + "</p>";
+  return chip("From your modules · " + esc(meta.sources[0].course)) + '<p style="margin:10px 0;line-height:1.8">' + answerText(text, sourcesIndex) + "</p>" +
+    '<p class="sm" style="margin:0 0 8px">Numbered parts come from your modules. Any “Think of it this way” line is the AI’s own example.</p>' +
+    sourcesButton(sourcesIndex, meta.sources.length)
+}
+
+/* ---------- sources and citations ---------- */
+// The [n] button inside an answer, and the "3 sources" button under it.
+function citeButton(sourcesIndex, n) {
+  return '<button class="ct" aria-label="Open source ' + n + '" onclick="cite(' + sourcesIndex + "," + n + ')">' + n + "</button>"
+}
+function sourcesButton(sourcesIndex, count) {
+  return '<button style="font-size:12px;padding:4px 10px" onclick="showSources(' + sourcesIndex + ')">' + count + " source" + (count > 1 ? "s" : "") + "</button>"
+}
+
+// The server's sources as Sources panel entries. Each says which course (courseId) and module (pos) it came from,
+// so "Open module" can open that exact module; older saved chats only have the module title.
+function sourceItems(sources) {
+  return sources.map(function (x) {
+    var at = findModule(x);
+    return { title: x.title, meta: esc(x.course) + " · " + Math.round(Math.max(x.bm25, x.dense || 0) * 100) + "% match", text: x.text,
+      course: at[0], module: at[1], sentences: [] }
+  })
+}
+// [course index, module index] of a source, or [-1, -1] if it isn't in this student's course list.
+function findModule(x) {
+  var ci = -1, m = -1;
+  COURSES.forEach(function (c, i) { if (ci < 0 && (x.courseId && c.id ? c.id === x.courseId : c.name === x.course)) ci = i });
+  if (ci > -1) {
+    var mods = COURSES[ci].modules;
+    if (x.pos) mods.forEach(function (mod, i) { if (m < 0 && mod.num === +x.pos) m = i });
+    if (m < 0) {   // older saved chats: by title
+      var title = String(x.title || "").replace(/^Module\s+\d+:\s*/i, "").toLowerCase();
+      mods.forEach(function (mod, i) { if (m < 0 && String(mod.title).toLowerCase() === title) m = i })
+    }
+  }
+  return m < 0 ? [-1, -1] : [ci, m]
+}
+
+// "3 sources": open the panel. Tapping [n]: open it with source n outlined and scrolled into view.
+function showSources(sourcesIndex) {
+  S.sourcesIndex = sourcesIndex;
+  S.sourcesOpen = true;
+  S.sourceMarked = 0;
+  render()
+}
+function cite(sourcesIndex, n) {
+  S.sourcesIndex = sourcesIndex;
+  S.sourceMarked = +n;
+  S.sourcesOpen = true;
+  render();
+  setTimeout(function () { var e = D.querySelector("#pn .src.hl"); if (e) e.scrollIntoView({ block: "nearest", behavior: "smooth" }) }, 60)
+}
+// "Open module" in the Sources panel: that module in the viewer, with this source's passage highlighted.
+function openSource(i) {
+  var list = SOURCES[S.sourcesIndex], s = list.items[i];
+  S.viewer = { course: s.course, module: s.module, sentences: s.sentences, passage: list.live ? s.text : null, n: i + 1 };
+  render()
+}

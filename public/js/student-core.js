@@ -1,256 +1,201 @@
-/* LearnLink student app, part 1 of 10: shared helpers, sample data (?demo), app state, render().
-   The parts share globals, so student.html must load them in order: core, signup, chat, ai, courses, db, settings, network, tour, start. */
-var D = document, $ = function (i) {
-  return D.getElementById(i)
-}, E = function (s) {
-  return String(s).replace(/</g, "&lt;")
-};
-var COL = {
-  "College of Computing and Information Sciences (CCIS)": ["BS Information Technology", "BS Computer Science"],
-  "College of Criminal Justice (CCJ)": ["BS Criminology"],
-  "College of Technology and Allied Sciences (CTAS)": ["BSIT major in Food Preparation Services Management",
-    "BS Electrical Technology", "BS Electronics Technology"]
-};
-var CO = [
-  [
-    "GE PPC",
-    "Liza Navarro",
-    "BSIT 3C",
-    ["What Is Popular Culture?", "Media and Society", "Filipino Pop Icons", "Social Media Trends"]
-  ],
-  [
-    "Information Assurance",
-    "Ramon Dizon",
-    "BSIT 3C",
-    ["Introduction to Information Assurance", "Security Principles", "Risk Management", "Cryptography Basics"]
-  ],
-  [
-    "Prof Elec 2",
-    "Jomar Villareal",
-    "BSIT 3C",
-    ["Web Architecture", "HTML and CSS Review", "Flexbox and Grid", "JavaScript Basics"]
-  ],
-  [
-    "GE Ethics",
-    "Andrea Mae Salazar",
-    "IT 3C",
-    ["Foundations of Ethics", "Moral Theories", "Professional Ethics", "Ethics in Technology"]
-  ],
-  ["IT 313", "Aurora Pineda", "BSIT 3", ["Course Overview", "Core Concepts", "Applications", "Case Studies"]],
-  [
-    "Research Methods",
-    "Carmela Reyes",
-    "BSIT 3C",
-    ["Research Basics", "Review of Literature", "Methodology", "Data Analysis"]
-  ]
-];
-var IA = [
-  {
-    s: [
-      "Information assurance protects how information is used, stored, and shared.",
-      "It combines technology, people, and policy instead of relying on tools alone.",
-      "Its goal is to keep information trustworthy and available."
-    ],
-    q: [
-      "What does information assurance combine?",
-      ["Technology, people, and policy", "Hardware only", "Software licenses"],
-      0
-    ],
-    f: [["What is information assurance?", "Protecting how information is used, stored, and shared."]]
-  },
-  {
-    s: [
-      "The CIA triad is built on confidentiality, integrity, and availability.",
-      "Confidentiality limits who can see data, and integrity keeps it accurate and unaltered.",
-      "Availability means systems and data can be reached when needed."
-    ],
-    q: ["Which goal means data is not changed without permission?", ["Confidentiality", "Integrity", "Availability"],
-      1],
-    f: [
-      ["Confidentiality", "Only authorized people can see the data."],
-      ["Availability", "Systems and data are reachable when needed."]
-    ]
-  },
-  {
-    s: [
-      "Risk is the chance that a threat exploits a weakness and causes harm.",
-      "Assessment identifies assets, threats, and vulnerabilities.",
-      "Responses include accepting, reducing, transferring, or avoiding risk."
-    ],
-    q: ["Which is a way to respond to risk?", ["Transferring it", "Ignoring the asset", "Deleting the policy"],
-      0],
-    f: [["What is a vulnerability?", "A weakness a threat can exploit."]]
-  },
-  {
-    s: [
-      "Encryption turns readable data into unreadable data using a key.",
-      "Symmetric methods share one key; asymmetric methods use a key pair.",
-      "Hashing creates a fixed fingerprint used to check integrity."
-    ],
-    q: ["Which technique checks that data was not changed?", ["Hashing", "Compression", "Formatting"], 0],
-    f: [["Hash", "A fixed-length fingerprint of data."]]
-  }
-];
+/* =====================================================================================================================
+   LearnLink student app: core (load first)
+   ---------------------------------------------------------------------------------------------------------------------
+   How the student app works
+   - apps/student.html loads these files in order. They are plain scripts that share global variables (no build step):
+       student-core.js      state, render(), small shared helpers                       <- this file
+       student-demo.js      sample courses and canned answers for ?demo (no server)
+       student-signup.js    creating an account
+       student-chat.js      sidebar, home screen, chat, Sources panel
+       student-ai.js        asking the AI (streamed answers), answer formatting, citations
+       student-courses.js   a course's modules, the module viewer, the course space (Ask / Summary / Quiz / Flashcards)
+       student-db.js        database calls: account, courses, saved chats, ratings
+       student-settings.js  Settings page
+       student-network.js   offline / weak-connection banner
+       student-tour.js      first-login tour
+       student-start.js     first draw and first data load (load last)
+   - The whole page is a string of HTML rebuilt by render() after every change: change S (or the data below), then
+     call render(). Each screen is a function that returns HTML (homeView(), chatView(), courseView(), ...).
+   - "Live" means the app runs inside login.html (an iframe) with a real account. Opened on its own with ?demo it shows
+     sample data instead (student-demo.js). The AI is reached through login.html (see student-ai.js).
+   - The CSS (css/student.css) styles elements by id: #sb sidebar, #pn Sources panel, #vw module viewer, #msgs chat,
+     #tab Sources tab. Keep those ids when changing the HTML.
+   ===================================================================================================================== */
 
-// "Module N: Title". Real courses carry each module's own number (c[5]), so hidden modules don't shift the count.
-function MT(c, m) {
-  return "Module " + (CO[c][5] ? CO[c][5][m] : m + 1) + ": " + E(CO[c][3][m])
+var D = document;
+function $(id) { return D.getElementById(id) }
+
+// Make text safe to put inside HTML (and inside "quoted" attributes).
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
 }
-// The app is "live" inside login.html (real data); opened on its own with ?demo it shows the sample data.
+
+// Live inside login.html (real data); on its own (?demo) it shows the sample data.
 var LIVE = window.parent !== window;
+var PHONE_WIDTH = 760;   // at or below this width: phone layout (same breakpoint as student.css)
+function isPhone() { return innerWidth <= PHONE_WIDTH }
 
-function C(c, m) {
-  if (c === 1 && IA[m] && CO[1][0] === "Information Assurance") return IA[m];
-  var t = CO[c][3][m];
-  return {
-    s: [
-      "This module introduces the key ideas of " + t + ".",
-      "It explains the main terms and how they connect.",
-      "It closes with examples you can use to review."
-    ],
-    q: ["Which topic does this module focus on?", [t, "An unrelated topic", "A different course"], 0],
-    f: [["Main idea of " + t + "?", "Sample answer from the module."]]
-  }
-}
-var TOP = [
-  {
-    k: /cia|confidential|integrity|availab|security/,
-    c: 1,
-    m: [1, 0],
-    a: [
-      ["The CIA triad is a model built on three security goals.", "1"],
-      ["Confidentiality limits who can see data, and integrity keeps it accurate and unaltered.", "12"],
-      ["Availability means systems and data can be reached when needed.", "2"]
-    ],
-    w: [
-      ["It gives organizations a common checklist for deciding what needs protecting.", "1"],
-      ["A weakness in any one goal is a security failure, so all three must be balanced.", "12"],
-      ["It also guides which controls to choose, such as access control, hashing, and backups.", "2"]
-    ],
-    wq: "Why is the CIA triad important?",
-    h: [[0, 1, 2], [2]]
-  },
-  {
-    k: /ethic|moral/,
-    c: 3,
-    m: [0, 1],
-    a: [
-      ["Morality is the set of beliefs about right and wrong that a person or community holds.", "1"],
-      ["Ethics is the systematic study of those beliefs and whether the reasons behind them hold up.", "12"]
-    ],
-    w: [
-      ["It helps us judge decisions with reasons instead of habit or opinion.", "1"],
-      ["In IT work it guides choices about privacy, honesty, and impact on people.", "2"]
-    ],
-    wq: "Why is ethics important?",
-    h: [[0], [0, 1]]
-  }
-];
+/* ---------- app state: what is on screen ---------- */
 var S = {
-  scr: /start=app/.test(location.search) ? "app" : "reg",
-  st: 1,
-  sb: innerWidth > 760,
-  cg: true,
-  srch: false,
-  sq: "",
-  v: "home",
-  ci: 1,
-  sel: [],
-  sp: "ask",
-  on: true,
-  pn: false,
-  mi: -1,
-  hn: 0,
-  pm: false,
-  vm: null,
-  qi: 0,
-  qs: 0,
-  qa: null,
-  fi: 0,
-  fl: false,
-  ch: [],
-  cf: null,
-  nm: false,
-  sim: null
-}, R = { un: "", sid: "", em: "", col: "", prg: "", yr: "", sec: "", pw: "" }, CH = [], MS = [], H = [],
-  last = null, T = [], cd = null;
+  screen: /start=app/.test(location.search) ? "app" : "signup",   // "signup" or "app"
 
-function clr() {
-  T.forEach(clearTimeout);
-  T = [];
-  clearInterval(cd)
+  // sidebar
+  sidebarOpen: !isPhone(),
+  coursesOpen: true,        // "Courses enrolled" list expanded
+  searchOpen: false,        // "Search chats" box shown
+  searchText: "",
+
+  view: "home",             // "home" | "chat" | "course" | "space" (course space) | "settings"
+  course: 1,                // index in COURSES of the course being looked at
+  selected: [],             // module indexes picked on the course page (none = all modules)
+  online: true,             // false when there is no usable connection (student-network.js)
+
+  // Sources panel (the list of passages behind an answer)
+  sourcesOpen: false,
+  sourcesIndex: -1,         // which entry of SOURCES the panel shows
+  sourceMarked: 0,          // number of the source outlined in the panel (1, 2, ...), 0 = none
+
+  // module viewer
+  openModule: null,         // module index opened from the course page ("Open"), or null
+  viewer: null,             // module opened from a source: { course, module, sentences, passage, n, scrolled }
+
+  // course space
+  spaceTab: "ask",          // "ask" | "sum" | "quiz" | "fc"
+  spaceChat: [],            // questions asked in the space: { question, html, modules, failed }
+  spaceTyping: null,        // { question, status } while a space answer is on its way
+  quizIndex: 0,             // current question
+  quizScore: 0,
+  quizAnswer: null,         // option picked for the current question, or null
+  cardIndex: 0,             // current flashcard
+  cardFlipped: false,
+  confirmLeave: null,       // function to run if the student confirms leaving a quiz in progress
+
+  tourStep: null            // first-login tour card on screen (0, 1, 2), or null
+};
+
+/* ---------- data ---------- */
+// Courses the student can see (from the database, or the samples in ?demo):
+//   { id, name, teacher, college, modules: [{ id, num, title }] }
+// "num" is the module's own number, so a hidden module doesn't shift the count.
+var COURSES = [];
+// The current chat, in order. A message is one of:
+//   { question }                                   what the student asked
+//   { typing: true, html }                         "Thinking…" placeholder while the answer is coming
+//   { html, text, mode, messageId, rating, ... }   an answer (see student-ai.js and the ratings in student-db.js)
+var CHAT = [];
+// Source lists behind answers in this chat; answers point at one by index:
+//   { title, live, items: [{ title, meta, text, course, module, sentences }] }
+// course / module are indexes into COURSES (-1 when the module can't be found); sentences: demo highlights.
+var SOURCES = [];
+var SAVED_CHATS = [];      // the student's saved chats: { id, title }
+var chatId = null;         // database id of the chat on screen (null until its first answer is saved)
+// The logged-in student (from the database; empty in ?demo, where the sample profile is shown).
+var ME = { username: "", studentId: "", email: "", college: "", program: "", year: "", section: "", photo: "" };
+var BUSY = false;          // an answer is being written: no new question until it's done
+var STOP = null;           // while an answer streams: a function that stops it (the send button becomes Stop)
+
+function displayName() { return ME.username || "maria_santos" }
+
+// "Module N: Title" for module m of course c, safe for HTML.
+function moduleTitle(c, m) {
+  var mod = COURSES[c].modules[m];
+  return "Module " + mod.num + ": " + esc(mod.title)
 }
 
-function go(s) {
-  S.scr = s;
-  render()
-}
-
-// Every change redraws the page. So that it doesn't look like a reload:
-// - the page's fade-in ("enter") plays only when the view really changes (another screen, course, tab, module),
+/* ---------- render ---------- */
+// Every change redraws the page from scratch. So that it doesn't look like a reload:
+// - the page's fade-in ("enter") plays only when the screen really changes (another view, course, tab, card),
 //   not for a new message, a rating or opening/closing Sources;
-// - the Sources sheet and the phone menu slide in only when they open (pn-in, sb-in), not on every redraw;
-// - the chat keeps its scroll position, and only follows to the bottom for a new message or when already there.
-var LASTN = -1;
+// - the Sources panel, the phone menu and the module viewer slide in only when they open (pn-in, sb-in, vw-in);
+// - the chat keeps its scroll position, and only follows to the bottom for a new message or when already there;
+// - the module viewer keeps its scroll position while the same module stays open;
+// - whatever the student was typing (and the cursor) survives the redraw.
+var LAST = { page: null, module: "", sources: false, sidebar: false, messages: -1 };
 function render() {
-  var r = $("root"), k = [S.scr, S.v, S.st, S.sp, S.ci, S.vm !== null, !!S.vw, S.qi, S.fi].join("|"), c = [];
-  if (k !== window.K) c.push("enter");
-  if (S.pn && !window.PN0) c.push("pn-in");
-  if (S.sb && !window.SB0) c.push("sb-in");
+  if (S.screen === "signup" && typeof gatherForm === "function") gatherForm();
+  var typing = rememberTyping();
+
+  var page = [S.screen, S.screen === "signup" ? signupStep() : S.view, S.spaceTab, S.course, S.quizIndex, S.cardIndex].join("|");
+  var module = S.viewer ? S.viewer.course + "." + S.viewer.module : S.openModule !== null && S.view === "course" ? S.course + "." + S.openModule : "";
+  var cls = [];
+  if (page !== LAST.page) cls.push("enter");
+  if (module && module !== LAST.module) cls.push("vw-in");
+  if (S.sourcesOpen && !LAST.sources) cls.push("pn-in");
+  if (S.sidebarOpen && !LAST.sidebar) cls.push("sb-in");
   // only messages that were just added slide in (1 or 2: a question and its "Thinking…" arrive together)
-  if (LASTN >= 0 && CH.length > LASTN) c.push("msg-new" + Math.min(2, CH.length - LASTN));
-  window.K = k;
-  window.PN0 = S.pn;
-  window.SB0 = S.sb;
-  var old = $("msgs"), top = old ? old.scrollTop : null,
-    atEnd = old ? old.scrollHeight - old.scrollTop - old.clientHeight < 80 : true;
-  r.className = c.join(" ");
-  r.innerHTML = S.scr === "reg" ? reg() : app();
-  var m = $("msgs");
-  if (m) m.scrollTop = CH.length !== LASTN || atEnd || top === null || c[0] === "enter" ? m.scrollHeight : top;
-  LASTN = CH.length;
-  after()
+  if (LAST.messages >= 0 && CHAT.length > LAST.messages) cls.push("msg-new" + Math.min(2, CHAT.length - LAST.messages));
+
+  var oldViewer = $("vwb"), viewerTop = oldViewer && module === LAST.module ? oldViewer.scrollTop : 0;
+  var oldChat = $("msgs"), chatTop = oldChat ? oldChat.scrollTop : null,
+    chatAtEnd = oldChat ? oldChat.scrollHeight - oldChat.scrollTop - oldChat.clientHeight < 80 : true;
+  var root = $("root");
+  root.className = cls.join(" ");
+  root.innerHTML = S.screen === "signup" ? signupView() : appView();
+
+  var viewer = $("vwb");
+  if (viewer && viewerTop) viewer.scrollTop = viewerTop;
+  var chat = $("msgs");
+  if (chat) chat.scrollTop = CHAT.length !== LAST.messages || chatAtEnd || chatTop === null || cls[0] === "enter" ? chat.scrollHeight : chatTop;
+
+  LAST = { page: page, module: module, sources: S.sourcesOpen, sidebar: S.sidebarOpen, messages: CHAT.length };
+  restoreTyping(typing)
 }
 
-function after() {}
+// Keep the text box the student is typing in (value, cursor and focus) across a redraw.
+function rememberTyping() {
+  var a = D.activeElement;
+  var isText = a && a.id && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" && !/^(file|checkbox|range)$/.test(a.type)));
+  return isText ? { id: a.id, el: a, value: a.value, from: a.selectionStart, to: a.selectionEnd } : null
+}
+function restoreTyping(t) {
+  if (!t) return;
+  var n = $(t.id);
+  if (!n || n === t.el) return;
+  n.value = t.value;
+  n.focus();
+  try { n.setSelectionRange(t.from, t.to) } catch (x) {}
+}
 
-// Close the Sources sheet / phone menu with a short slide-out first, then redraw without them.
+/* ---------- panels that slide out before they close ---------- */
+// Plays the closing animation (a CSS class on the element), then runs done(). No animation with "reduce motion".
 function slideOut(id, cls, done) {
   var el = $(id);
   if (!el || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) return done();
   el.classList.add(cls);
   setTimeout(done, 180)
 }
-function pnClose() {
-  slideOut("pn", "pn-out", function () { S.pn = false; render() })
+function closeViewer() { slideOut("vw", "vw-out", function () { S.openModule = null; S.viewer = null; render() }) }
+function closeSources() { slideOut("pn", "pn-out", function () { S.sourcesOpen = false; render() }) }
+function closeSidebar() {
+  if (!isPhone()) { S.sidebarOpen = false; render(); return }
+  slideOut("sb", "sb-out", function () { S.sidebarOpen = false; render() })
 }
-function sbClose() {
-  if (innerWidth > 760) { S.sb = false; render(); return }
-  slideOut("sb", "sb-out", function () { S.sb = false; render() })
+function toggleSidebar() { S.sidebarOpen ? closeSidebar() : (S.sidebarOpen = true, render()) }
+// On a phone the menu covers the page, so it closes when the student goes somewhere.
+function closeSidebarOnPhone() { if (isPhone()) S.sidebarOpen = false }
+
+/* ---------- small pieces of HTML used in many places ---------- */
+// The LearnLink robot.
+function botIcon(size) {
+  return '<svg width="' + size + '" height="' + Math.round(size * 1.1) + '" viewBox="0 0 40 44" style="flex-shrink:0;display:block" role="img" aria-label="LearnLink AI"><line x1="20" y1="8.5" x2="20" y2="4" stroke="#FFB800" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="3.6" r="2.6" fill="#FFB800" stroke="#fff" stroke-width="1"/><path d="M3 26A17 17 0 0 1 37 26Z" fill="#002583"/><path d="M3 26A17 17 0 0 0 37 26Z" fill="#FFB800"/><circle cx="20" cy="26" r="17" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="14" cy="22" r="3.6" fill="#fff"/><circle cx="26" cy="22" r="3.6" fill="#fff"/><circle cx="14.8" cy="22.6" r="1.9" fill="#0A1A45"/><circle cx="26.8" cy="22.6" r="1.9" fill="#0A1A45"/><circle cx="15.4" cy="21.8" r=".7" fill="#fff"/><circle cx="27.4" cy="21.8" r=".7" fill="#fff"/><circle cx="9.5" cy="31.5" r="2.2" fill="#F08A24" opacity=".55"/><circle cx="30.5" cy="31.5" r="2.2" fill="#F08A24" opacity=".55"/><path d="M15.5 31Q20 35.5 24.5 31" fill="none" stroke="#0A1A45" stroke-width="2.2" stroke-linecap="round"/></svg>'
+}
+// Three bouncing dots, with an optional status ("Writing the answer…").
+function typingDots(status) {
+  return '<div class="typ" role="status"><span class="d"></span><span class="d"></span><span class="d"></span>' +
+    (status ? '<span class="tx">' + status + "</span>" : "") + "</div>"
+}
+// Loading placeholder: grey lines of the given widths ("0" = a paragraph gap). Styles: .skl in student.css.
+function skeleton(widths) {
+  return widths.map(function (w) { return w === "0" ? '<div style="height:10px"></div>' : '<i class="skl" style="width:' + w + '"></i>' }).join("")
+}
+// A coloured label above an answer. kind: "" (blue, from the modules), "n" (neutral), "w" (warning).
+function chip(text, kind) { return '<span class="chip' + (kind ? " " + kind : "") + '">' + text + "</span>" }
+// A student's question bubble (right side) and the robot's side of the chat (left side).
+function questionBubble(text) {
+  return '<div style="display:flex;justify-content:flex-end;margin:10px 0"><div style="background:var(--s1);border-radius:16px;padding:8px 14px;max-width:80%">' + esc(text) + "</div></div>"
+}
+function answerRow(inner, attrs) {
+  return '<div style="display:flex;gap:10px;align-items:flex-start;margin:12px 0">' + botIcon(34) + '<div' + (attrs || "") + ' style="flex:1;min-width:0">' + inner + "</div></div>"
 }
 
-function name() {
-  return R.un || "maria_santos"
-}
-var _RR = render;
-render = function () {
-  var a = D.activeElement, id = a && a.id, ok = a && (a.tagName === "TEXTAREA" || (a.tagName === "INPUT" &&
-    a.type !== "file" && a.type !== "checkbox" && a.type !== "range")), v = ok ? a.value : null, s1 = ok ? a.selectionStart : 0,
-    s2 = ok ? a.selectionEnd : 0;
-  if (typeof S !== "undefined" && S.scr === "reg" && typeof gather === "function") gather();
-  _RR();
-  if (ok && id) {
-    var n = $(id);
-    if (n && n !== a) {
-      n.value = v;
-      n.focus();
-      try {
-        n.setSelectionRange(s1, s2)
-      } catch (x) {}
-    }
-  }
-};
-
-function bot(s) {
-  return '<svg width="' + s + '" height="' + Math.round(s * 1.1) + '" viewBox="0 0 40 44" style="flex-shrink:0;display:block" role="img" aria-label="LearnLink AI"><line x1="20" y1="8.5" x2="20" y2="4" stroke="#FFB800" stroke-width="2" stroke-linecap="round"/><circle cx="20" cy="3.6" r="2.6" fill="#FFB800" stroke="#fff" stroke-width="1"/><path d="M3 26A17 17 0 0 1 37 26Z" fill="#002583"/><path d="M3 26A17 17 0 0 0 37 26Z" fill="#FFB800"/><circle cx="20" cy="26" r="17" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="14" cy="22" r="3.6" fill="#fff"/><circle cx="26" cy="22" r="3.6" fill="#fff"/><circle cx="14.8" cy="22.6" r="1.9" fill="#0A1A45"/><circle cx="26.8" cy="22.6" r="1.9" fill="#0A1A45"/><circle cx="15.4" cy="21.8" r=".7" fill="#fff"/><circle cx="27.4" cy="21.8" r=".7" fill="#fff"/><circle cx="9.5" cy="31.5" r="2.2" fill="#F08A24" opacity=".55"/><circle cx="30.5" cy="31.5" r="2.2" fill="#F08A24" opacity=".55"/><path d="M15.5 31Q20 35.5 24.5 31" fill="none" stroke="#0A1A45" stroke-width="2.2" stroke-linecap="round"/></svg>'
-}
+function logOut() { parent.postMessage("logout", "*") }

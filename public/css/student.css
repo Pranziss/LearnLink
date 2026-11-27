@@ -727,6 +727,16 @@ mark {
   animation: hl .8s .25s ease both;
 }
 
+/* module viewer: the paragraph a citation [n] points to */
+.phl {
+  background: var(--bt);
+  border-left: 3px solid var(--ac);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-left: -12px !important;
+  animation: hl .8s .25s ease both;
+}
+
 @keyframes hl {
   from {
     background: transparent;
@@ -1261,3 +1271,24 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .msg-new1 #msgs > div:last-child, .msg-new2 #msgs > div:nth-last-child(-n+2), .enter .au .card { animation: none !important; }
 }
+
+/* Module viewer (Nov 27, 2026): slides in on its own when a module opens (.vw-in, set by render()) and slides out
+   when closed (.vw-out, vwClose()), instead of popping in with the whole page replaying its entrance. From the right
+   on desktop, from the bottom on phones, like the Sources sheet. */
+.vw, .enter .vw { animation: none; }
+.vw-in .vw { animation: vwin .34s cubic-bezier(.22,1,.36,1) both; }
+.vw.vw-out { animation: vwout .2s ease-in forwards !important; }
+@keyframes vwin { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes vwout { to { opacity: 0; transform: translateX(40px); } }
+@media (max-width: 760px) {
+  @keyframes vwin { from { opacity: .4; transform: translateY(100%); } to { opacity: 1; transform: none; } }
+  @keyframes vwout { to { opacity: .4; transform: translateY(100%); } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vw-in .vw, .vw.vw-out { animation: none !important; }
+}
+
+/* Blinking cursor at the end of an answer while it is being written (student-ai.js, answerText()). */
+.caret { display: inline-block; width: 7px; height: 1.05em; background: var(--ac); margin-left: 2px; vertical-align: -3px; border-radius: 2px; animation: cblink 1s steps(2) infinite; }
+@keyframes cblink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .caret { animation: none; } }

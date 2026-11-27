@@ -1,230 +1,137 @@
-/* LearnLink student app, part 8: connection status (Wi-Fi icon, speed checks, offline notice). */
-var NET = { lv: "good", mbps: null, bad: 0 }, SIMS = [null, { on: 1, mbps: 45 }, { on: 1, mbps: .6 },
-  { on: 0 }], SN = ["Auto", "Fast", "Weak", "No signal"];
+/* =====================================================================================================================
+   LearnLink student app: connection status
+   ---------------------------------------------------------------------------------------------------------------------
+   Shows a banner at the top when the connection is weak or gone ("Campus mode": LearnLink keeps working over the
+   campus network without internet), and a short toast when it changes.
+   How it measures: the browser's online/offline events and navigator.connection, plus two small test downloads
+   (TEST_FILES) every few seconds: a tiny one for latency, a bigger one for speed.
+   TODO (PROGRESS.md): the test files are on public CDNs; point them at the campus server.
+   ===================================================================================================================== */
 
-function wifi(l) {
-  var c = l === "good" ? "var(--ac)" : l === "weak" ? "#E0A100" : "var(--er)", n = l === "good" ? 3 : l === "weak" ? 1 : 0,
-    g = "var(--bd2)";
-  return '<svg width="20" height="16" viewBox="0 0 24 20" fill="none" stroke-linecap="round" stroke-width="2.4" aria-hidden="true"><path d="M2 7.5a14 14 0 0 1 20 0" stroke="' +
-    (n >= 3 ? c : g) + '"/><path d="M5.5 11.5a9 9 0 0 1 13 0" stroke="' + (n >= 2 ? c : g) + '"/><path d="M9 15.2a4 4 0 0 1 6 0" stroke="' +
-    (n >= 1 ? c : g) + '"/><circle cx="12" cy="18.5" r="1.1" fill="' + (n >= 1 ? c : g) + '" stroke="none"/>' +
-    (l === "off" ? '<path d="M3 2l18 17" stroke="var(--er)"/>' : "") + "</svg>"
-}
+var TEST_FILES = {
+  small: "https://cdnjs.cloudflare.com/ajax/libs/fastclick/1.0.6/fastclick.min.js",   // latency, every 2 s
+  big: "https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"                         // speed, every 10 s
+};
+var SLOW_MBPS = 1, NO_SIGNAL_MBPS = 0.2;   // below these: "weak", then "off"
 
-function rd() {
-  if (S.sim) return S.sim.on ? S.sim.mbps : -1;
+// level: "good" | "weak" | "off". mbps: last measured speed (null = unknown). misses: a short grace before "off".
+var NET = { level: "good", mbps: null, misses: 0 };
+// Test download results: latency (ms), speed (Mbps), failures in a row, and whether any test worked yet.
+var PROBE = { latency: null, mbps: null, smallFails: 0, bigFails: 0, worked: false };
+
+// Best guess at the current speed in Mbps: -1 = offline, null = unknown.
+function currentMbps() {
   if (!navigator.onLine) return -1;
-  if (NS && NS.ok && NS.fR >= 2 && NS.fB >= 1) return -1;
-  if (NS && NS.mbps != null) return NS.mbps;
+  if (PROBE.worked && PROBE.smallFails >= 2 && PROBE.bigFails >= 1) return -1;   // test downloads keep failing
+  if (PROBE.mbps != null) return PROBE.mbps;
   var c = navigator.connection;
   return c && typeof c.downlink === "number" ? c.downlink : null
 }
-
-function lvOf(m) {
-  return m === -1 ? "off" : m === null ? "good" : m < .2 ? "off" : m < 1 ? "weak" : "good"
+function levelOf(mbps) {
+  return mbps === -1 ? "off" : mbps === null ? "good" : mbps < NO_SIGNAL_MBPS ? "off" : mbps < SLOW_MBPS ? "weak" : "good"
 }
 
-function netUpd(first) {
-  var m = rd(), l = lvOf(m), prev = NET.lv;
-  if (!first && !S.sim && l === "off" && prev !== "off" && NET.bad < 1) {
-    NET.bad++;
+// Re-check the level and update the page if it changed. A single bad reading doesn't flip to "off" right away.
+function updateNetwork(first) {
+  var mbps = currentMbps(), level = levelOf(mbps), before = NET.level;
+  if (!first && level === "off" && before !== "off" && NET.misses < 1) {
+    NET.misses++;
     return
   }
-  NET.bad = 0;
-  var t = (m === -1 || m === null) ? m : Math.round(m * 10 / 1) / 10;
-  if (!first && l === NET.lv && t === NET.mbps) return;
-  var lc = l !== NET.lv;
-  NET.lv = l;
-  NET.mbps = t;
-  S.on = l !== "off";
+  NET.misses = 0;
+  var rounded = mbps === -1 || mbps === null ? mbps : Math.round(mbps * 10) / 10;
+  if (!first && level === NET.level && rounded === NET.mbps) return;
+  NET.level = level;
+  NET.mbps = rounded;
+  S.online = level !== "off";
   if (first) return;
-  if (prev !== l) tw(l, prev);
-  if (lc) {
-    if (S.scr === "app") render()
-  } else {
-    var b = D.querySelector('button[aria-label^="Connection"]');
-    if (b) b.outerHTML = netH()
+  if (before !== level) {
+    networkToast(level, before);
+    if (S.screen === "app") render()
   }
 }
-
-function nu(e) {
-  if (e && e.type === "offline") NET.bad = 1;
-  netUpd(false)
+function onNetworkEvent(e) {
+  if (e && e.type === "offline") NET.misses = 1;   // the browser is sure: no grace period
+  updateNetwork(false)
 }
 
-function netH() {
-  var l = NET.lv, t = l === "off" ? "Offline" : (NET.mbps == null || NET.mbps === -1) ? "Online" : NET.mbps +
-    " Mbps";
-  return '<button aria-label="Connection: ' + t + '" onclick="event.stopPropagation();S.nm=!S.nm;S.pm=false;render()" style="display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:99px;color:' +
-    (l === "off" ? "var(--er)" : l === "weak" ? "var(--wt)" : "var(--tx)") + '">' + wifi(l) + "<span>" + t +
-    "</span></button>"
+/* ---------- what the student sees ---------- */
+function networkBanner() {
+  if (NET.level === "good") return "";
+  var off = NET.level === "off";
+  return '<div style="margin:0 22px 8px;padding:8px 14px;border-radius:14px;background:' + (off ? "var(--erb)" : "var(--bt)") + ";color:" + (off ? "var(--er)" : "var(--wt)") +
+    ';font-size:13px;font-weight:700">' + (off ? "No internet. Campus mode: LearnLink still answers over the campus network." : "Weak connection (" + NET.mbps + " Mbps). Answers may be slow.") + "</div>"
 }
 
-function netB() {
-  var l = NET.lv;
-  if (l === "good") return "";
-  var o = l === "off";
-  return '<div style="margin:0 22px 8px;padding:8px 14px;border-radius:14px;background:' + (o ? "var(--erb)" : "var(--bt)") +
-    ';color:' + (o ? "var(--er)" : "var(--wt)") + ';font-size:13px;font-weight:700">' + (o ? "No internet. Campus mode: LearnLink still answers over the campus network." : "Weak connection (" +
-    NET.mbps + " Mbps). Answers may be slow.") + "</div>"
+// A toast in #tw (student.html) for 5 seconds; tap to close.
+var toastTimer;
+function networkToast(level, before) {
+  var el = $("tw");
+  if (!el) return;
+  var kind = level === "off" ? "off" : level === "weak" ? "weak" : "on";
+  var m = kind === "off" ? ["No internet", "Campus mode: LearnLink still works over the campus network."] :
+    kind === "weak" ? [before === "off" ? "Back online, but weak" : "Weak connection", "Answers may be slow."] : ["Back online", "Internet restored."];
+  el.innerHTML = '<div class="tw ' + kind + '" onclick="this.parentNode.innerHTML=\'\'"><b>' + m[0] + "</b><span>" + m[1] + "</span></div>";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.innerHTML = "" }, 5000)
 }
 
-function netP() {
-  if (!S.nm) return "";
-  var t = NET.lv === "off" ? "No usable signal" : NET.lv === "weak" ? "Weak signal" : "Good signal";
-  return '<div class="dd" style="width:290px;right:60px;cursor:default" onclick="event.stopPropagation()"><p style="margin:4px 10px 6px;font-weight:800">' +
-    t + (S.sim ? ' <span class="sm">(simulated)</span>' : "") + '</p><span id="ng" style="display:block">' +
-    netG() + '</span><p class="sm" style="margin:0 10px 8px">' + (NS.ok ? "Measured live with small test downloads. Below 0.2 Mbps or with no signal, you are on campus mode only." : "Using your browser’s own signal while test downloads load.") +
-    '</p><p class="sm" style="margin:0 10px 6px">Presentation demo</p><p style="margin:0 10px 8px;display:flex;flex-wrap:wrap;gap:6px">' +
-    SN.map(function (n, i) {
-    return '<button' + (S.sim === SIMS[i] ? ' class="p"' : "") + ' style="font-size:12px;padding:4px 10px" onclick="setSim(' +
-      i + ')">' + n + "</button>"
-  }).join("") + "</p></div>"
-}
-
-function setSim(i) {
-  S.sim = SIMS[i];
-  NET.bad = 1;
-  netUpd(false);
-  render()
-}
-window.addEventListener("online", nu);
-window.addEventListener("offline", nu);
-if (navigator.connection && navigator.connection.addEventListener) navigator.connection.addEventListener("change",
-  nu);
-setInterval(nu, 4000);
-netUpd(true);
-var NS = { rx: [], lat: [], mbps: null, rtt: null, fR: 0, fB: 0, ok: 0, peak: 0 }, U_R = "https://cdnjs.cloudflare.com/ajax/libs/fastclick/1.0.6/fastclick.min.js",
-  U_B = "https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js", tc = 0, bR = 0, bB = 0;
-for (var i0 = 0; i0 < 60; i0++) {
-  NS.rx.push(0);
-  NS.lat.push(0)
-}
-
-function probe(u, cb) {
-  var s = D.createElement("script"), t0 = performance.now(), dn = 0, tm = setTimeout(function () {
-    end(0)
-  }, 8000);
+/* ---------- test downloads ---------- */
+// Load url as a script (works across sites without CORS); then done(ok, ms, timing entry).
+function probe(url, done) {
+  var s = D.createElement("script"), t0 = performance.now(), over = false, timer = setTimeout(function () { end(false) }, 8000);
   function end(ok) {
-    if (dn) return;
-    dn = 1;
-    clearTimeout(tm);
-    var ms = performance.now() - t0, e = null;
-    if (ok) {
-      var es = performance.getEntriesByName(s.src);
-      e = es[es.length - 1] || null
-    }
+    if (over) return;
+    over = true;
+    clearTimeout(timer);
+    var entries = ok ? performance.getEntriesByName(s.src) : [];
     s.remove();
-    cb(ok, ms, e)
+    done(ok, performance.now() - t0, entries[entries.length - 1] || null)
   }
-  s.onload = function () {
-    end(1)
-  };
-  s.onerror = function () {
-    end(0)
-  };
+  s.onload = function () { end(true) };
+  s.onerror = function () { end(false) };
   s.async = true;
-  s.src = u + "?t=" + Date.now() + Math.floor(Math.random() * 999);
+  s.src = url + "?t=" + Date.now() + Math.floor(Math.random() * 999);
   D.head.appendChild(s)
 }
-
-function gotR(ok, ms, e) {
+function gotSmall(ok, ms, entry) {
   if (ok) {
-    NS.ok = 1;
-    NS.fR = 0;
-    NS.rtt = Math.max(1, Math.round((e && e.duration) || ms))
-  } else NS.fR++;
-  if (rd() === -1) NET.bad = 1;
-  netUpd(false)
+    PROBE.worked = true;
+    PROBE.smallFails = 0;
+    PROBE.latency = Math.max(1, Math.round((entry && entry.duration) || ms))
+  } else PROBE.smallFails++;
+  if (currentMbps() === -1) NET.misses = 1;
+  updateNetwork(false)
 }
-
-function gotB(ok, ms, e) {
+function gotBig(ok, ms, entry) {
   if (ok) {
-    NS.ok = 1;
-    NS.fB = 0;
-    var by = (e && (e.transferSize || e.encodedBodySize)) || 90000, tt = e && (e.responseEnd - e.responseStart) > 3 ? (e.responseEnd - e.responseStart) : ms,
-      x = Math.min(999, by * 8 / 1000 / tt);
-    NS.mbps = NS.mbps == null ? x : NS.mbps * .5 + x * .5
-  } else NS.fB++;
-  if (rd() === -1) NET.bad = 1;
-  netUpd(false)
+    PROBE.worked = true;
+    PROBE.bigFails = 0;
+    var bytes = (entry && (entry.transferSize || entry.encodedBodySize)) || 90000;
+    var t = entry && entry.responseEnd - entry.responseStart > 3 ? entry.responseEnd - entry.responseStart : ms;
+    var mbps = Math.min(999, bytes * 8 / 1000 / t);
+    PROBE.mbps = PROBE.mbps == null ? mbps : PROBE.mbps * 0.5 + mbps * 0.5   // smoothed
+  } else PROBE.bigFails++;
+  if (currentMbps() === -1) NET.misses = 1;
+  updateNetwork(false)
 }
 
-function chart(a, col, min) {
-  var w = 252, h = 64, mx = Math.max(min, Math.max.apply(null, a)) * 1.15, line = a.map(function (v, i) {
-    return (i / (a.length - 1) * w).toFixed(1) + "," + (h - v / mx * h).toFixed(1)
-  }).join(" ");
-  return '<svg viewBox="0 0 ' + w + " " + h + '" width="100%" height="' + h + '" preserveAspectRatio="none" style="background:var(--s1);border-radius:10px;display:block" aria-hidden="true">' +
-    [.25, .5, .75].map(function (f) {
-    return '<line x1="0" x2="' + w + '" y1="' + h * f + '" y2="' + h * f + '" stroke="var(--bd)" stroke-dasharray="3 3"/>'
-  }).join("") + '<polygon points="0,' + h + " " + line + " " + w + "," + h + '" fill="' + col + '" opacity=".22"/><polyline points="' +
-    line + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>'
-}
-
-function netG() {
-  var off = NET.lv === "off", c = navigator.connection, d = S.sim ? (S.sim.on ? S.sim.mbps : 0) : (off ? 0 : (NS.mbps != null ? NS.mbps : (c &&
-    c.downlink) || 0)), f = function (x) {
-    return x >= 10 ? Math.round(x) : Math.round(x * 10) / 10
-  }, lt = off ? "—" : S.sim ? "~50 ms" : NS.rtt == null ? "…" : NS.rtt + " ms";
-  return '<p style="margin:0 10px 8px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><span><span class="sm">Download</span><br><b>' +
-    (off ? 0 : f(d)) + ' Mbps</b></span><span><span class="sm">Latency</span><br><b>' + lt + '</b></span><span><span class="sm">Peak</span><br><b>' +
-    f(NS.peak) + ' Mbps</b></span></p><p class="sm" style="margin:0 10px 4px">Download, last 60 seconds</p><p style="margin:0 10px 8px">' +
-    chart(NS.rx, "#3B82F6", 1) + '</p><p class="sm" style="margin:0 10px 4px">Latency</p><p style="margin:0 10px 8px">' +
-    chart(NS.lat, "#E0A100", 50) + "</p>"
-}
-
-function tick() {
-  tc++;
-  var off = NET.lv === "off", c = navigator.connection, v = 0, l = 0;
-  if (S.sim) {
-    if (S.sim.on) {
-      v = S.sim.mbps * (.85 + Math.random() * .3);
-      l = 40 + Math.random() * 25
-    }
-  } else if (!off) {
-    v = NS.mbps != null ? NS.mbps : (c && c.downlink) || 0;
-    l = NS.rtt || 0
+var seconds = 0, smallRunning = false, bigRunning = false;
+setInterval(function () {
+  seconds++;
+  if (!navigator.onLine) return;
+  if (!smallRunning && seconds % 2 === 0) {
+    smallRunning = true;
+    probe(TEST_FILES.small, function (ok, ms, e) { smallRunning = false; gotSmall(ok, ms, e) })
   }
-  NS.rx.push(v);
-  NS.rx.shift();
-  NS.lat.push(l);
-  NS.lat.shift();
-  if (v > NS.peak) NS.peak = v;
-  var g = $("ng");
-  if (S.nm && g) g.innerHTML = netG();
-  if (!S.sim && navigator.onLine) {
-    if (!bR && tc % 2 === 0) {
-      bR = 1;
-      probe(U_R, function (a, b, e) {
-        bR = 0;
-        gotR(a, b, e)
-      })
-    }
-    if (!bB && tc % (S.nm ? 3 : 10) === 0) {
-      bB = 1;
-      probe(U_B, function (a, b, e) {
-        bB = 0;
-        gotB(a, b, e)
-      })
-    }
+  if (!bigRunning && seconds % 10 === 0) {
+    bigRunning = true;
+    probe(TEST_FILES.big, function (ok, ms, e) { bigRunning = false; gotBig(ok, ms, e) })
   }
-}
-window.addEventListener("online", function () {
-  NS.fR = 0;
-  NS.fB = 0;
-  nu()
-});
-setInterval(tick, 1000);
-var TWT;
-function tw(l, prev) {
-  var k = l === "off" ? "off" : l === "weak" ? "weak" : "on", m = k === "off" ? ["No internet", "Campus mode: LearnLink still works over the campus network."] : k === "weak" ? (prev === "off" ? ["Back online, but weak",
-    "Answers may be slow."] : ["Weak connection", "Answers may be slow."]) : ["Back online", "Internet restored."],
-    el = $("tw");
-  if (!el) return;
-  el.innerHTML = '<div class="tw ' + k + '" onclick="this.parentNode.innerHTML=\'\'"><b>' + m[0] + "</b><span>" +
-    m[1] + "</span></div>";
-  clearTimeout(TWT);
-  TWT = setTimeout(function () {
-    el.innerHTML = ""
-  }, 5000)
-}
+}, 1000);
+
+window.addEventListener("online", function () { PROBE.smallFails = 0; PROBE.bigFails = 0; onNetworkEvent() });
+window.addEventListener("offline", onNetworkEvent);
+if (navigator.connection && navigator.connection.addEventListener) navigator.connection.addEventListener("change", onNetworkEvent);
+setInterval(onNetworkEvent, 4000);
+updateNetwork(true);
