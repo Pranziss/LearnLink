@@ -1,8 +1,26 @@
 {
-  "ge-ppc":               { "name": "GE PPC",               "college": "GE" },
-  "information-assurance":{ "name": "Information Assurance","college": "CCIS" },
-  "prof-elec-2":          { "name": "Prof Elec 2",          "college": "CCIS" },
-  "ge-ethics":            { "name": "GE Ethics",            "college": "GE" },
-  "it-313":               { "name": "IT 313",               "college": "CCIS" },
-  "research-methods":     { "name": "Research Methods",     "college": "CCIS" }
+    "ge-ethics": {
+        "name": "GE Ethics",
+        "college": "GE"
+    },
+    "ge-ppc": {
+        "name": "GE PPC",
+        "college": "GE"
+    },
+    "information-assurance": {
+        "name": "Information Assurance",
+        "college": "CCIS"
+    },
+    "it-313": {
+        "name": "IT 313",
+        "college": "CCIS"
+    },
+    "prof-elec-2": {
+        "name": "Prof Elec 2",
+        "college": "CCIS"
+    },
+    "research-methods": {
+        "name": "Research Methods",
+        "college": "CCIS"
+    }
 }

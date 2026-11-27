@@ -73,7 +73,7 @@ const STUDY = {
 - All 4 options must be about the same length and written in the same style, so the right one does not stand out.
 - No "all of the above", "none of the above", or trick questions.
 - "answer" is the position of the correct option: 0, 1, 2 or 3.
-- "why": one sentence, based on the module, saying why the correct option is right.`,
+- "why": one sentence in your own words, based on the module, saying why the correct option is right. Do not quote the module.`,
   cards: `Write {n} flashcards for memorizing this module.
 - "front": a key term, or a short question (at most 12 words).
 - "back": the answer from the module (at most 20 words).

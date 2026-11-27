@@ -296,14 +296,32 @@ main {
   margin-bottom: 8px;
 }
 
+/* the right answer is green and the wrong pick red, in both themes, with a mark so it isn't colour alone */
 .opt.ok {
-  background: var(--acb);
-  border-color: var(--ac);
+  background: var(--mt);
+  border-color: var(--ok);
 }
 
 .opt.bad {
   background: var(--erb);
   border-color: var(--er);
+}
+
+.opt.ok::after,
+.opt.bad::after {
+  float: right;
+  margin-left: 8px;
+  font-weight: 800;
+}
+
+.opt.ok::after {
+  content: "✓";
+  color: var(--ok);
+}
+
+.opt.bad::after {
+  content: "✗";
+  color: var(--er);
 }
 
 #pn {

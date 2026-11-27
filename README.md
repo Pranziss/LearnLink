@@ -74,7 +74,9 @@ the address, or find it with `ipconfig`). Allow Node.js through Windows Firewall
 Reaching it from outside campus (for example with a Cloudflare Tunnel) needs BISU IT approval and https first; see
 "Setting up Continue with Google".
 
-**Uploads:** PDF text needs `pdftotext` or `composer require smalot/pdfparser`. In php.ini, set `upload_max_filesize`
+**Uploads:** PDF text needs `pdftotext`. Git for Windows already includes it, and LearnLink finds it there by itself;
+otherwise install Poppler and set `PDFTOTEXT=` in `.env` to its `pdftotext.exe`. Word and PowerPoint files need
+`extension=zip` turned on in php.ini (Laragon: Menu → PHP → Extensions → zip). In php.ini, also set `upload_max_filesize`
 and `post_max_size` to 25M or more.
 
 Settings live in `.env` (copied from `.env.example`). The AI model is `MODEL=` there. After changing `.env` or any

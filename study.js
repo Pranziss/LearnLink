@@ -18,7 +18,8 @@ const MAX_CHARS = 9000;   // module text given to the model (~2,300 tokens), so 
 // The JSON shape the model must reply with, per kind. Ollama turns it into a grammar, so it is enforced while the model
 // writes: lengths are capped, and double quotes (straight or curly) are not allowed inside a string, because gemma
 // sometimes ends a sentence with ” and then keeps repeating it until it runs out of tokens.
-const text = (max) => ({ type: "string", minLength: 1, maxLength: max, pattern: "^[^“”\"]+$" });
+// No backslash either: the model could still write an escaped \" and break the JSON (seen when it tries to quote the module).
+const text = (max) => ({ type: "string", minLength: 1, maxLength: max, pattern: "^[^“”\"\\\\]+$" });
 const list = (items, max) => ({ type: "array", items, minItems: 1, maxItems: max });
 const SCHEMAS = {
   summary: { type: "object", required: ["points", "terms"], properties: {
@@ -130,13 +131,18 @@ function createStudy({ dir, cacheFile, model, generate, isIdle }) {
   }
 
   async function make(kind, mod, key, signal) {
-    const text = fitText(mod.text);
-    const ask = STUDY[kind].replace("{n}", howMany(kind, text));
+    const text = fitText(mod.text), n = howMany(kind, text);
+    const ask = STUDY[kind].replace("{n}", n);
+    // the grammar also asks for at least n questions / cards (n-1 for the quiz, so one bad question doesn't fail it),
+    // or the model sometimes stops after one
+    const format = kind === "summary" ? SCHEMAS.summary : JSON.parse(JSON.stringify(SCHEMAS[kind]));
+    if (kind === "quiz") format.properties.questions.minItems = Math.max(2, n - 1);
+    if (kind === "cards") format.properties.cards.minItems = n;
     const messages = [{ role: "system", content: STUDY_SYSTEM }, { role: "user", content: `${ask}\n\nModule: ${mod.title}\n\n${text}` }];
     const t0 = Date.now();
     // Small models sometimes return an unusable list: one more try before giving up.
     for (let attempt = 1; attempt <= 2; attempt++) {
-      const raw = await generate(messages, { format: SCHEMAS[kind], numPredict: TOKENS[kind], signal });
+      const raw = await generate(messages, { format, numPredict: TOKENS[kind], signal });
       let j = null;
       try { j = JSON.parse(raw); } catch {}
       const items = check(kind, j);

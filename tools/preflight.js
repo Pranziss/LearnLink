@@ -107,6 +107,15 @@ const json = async (url, opt = {}) => (await fetch(url, { signal: AbortSignal.ti
     placeholders.length ? warn(`placeholder modules in: ${placeholders.join(", ")}`, "upload the real modules, or don't open these courses in the demo") : ok("no placeholder modules");
   } catch (e) { warn("could not check the study tools: " + (e.message || e.msg)); }
 
+  /* PDF uploads: PHP needs the pdftotext program (looked for the same way as api/_extract.php) */
+  {
+    const win = process.platform === "win32", set = get("PDFTOTEXT", "");
+    const places = set ? [set] : win ? ["C:/Program Files/Git/ucrt64/bin/pdftotext.exe", "C:/Program Files/Git/mingw64/bin/pdftotext.exe"] : ["/usr/bin/pdftotext", "/usr/local/bin/pdftotext", "/opt/homebrew/bin/pdftotext"];
+    const found = places.find((f) => fs.existsSync(f));
+    found ? ok(`PDF uploads can be read (${found})`) : warn("teachers' PDF uploads may not be readable (pdftotext not found in the usual places)",
+      set ? `PDFTOTEXT in .env points to a missing file: ${set}` : "install Git for Windows, or Poppler and set PDFTOTEXT=<path to pdftotext.exe> in .env");
+  }
+
   /* addresses for phones */
   console.log("\nOpen on a phone (same Wi-Fi)");
   const port = PORT || get("PORT", "3000");
