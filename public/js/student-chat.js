@@ -122,11 +122,11 @@ function chatV() {
     }).join("") + '</div><div style="padding:0 22px 16px">' + box("qi", "Ask a follow-up…") + "</div>";
     var mm = MS[S.mi];
     if (S.pn && mm) x = '<div id="pn"><div style="display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid var(--bd)"><div><b>Sources</b><div class="sm">' +
-      E(mm.t) + '</div></div><button class="g" aria-label="Close sources" onclick="pnClose()">✕</button></div><div style="flex:1;overflow-y:auto;padding:12px">' +
+      E(mm.t.replace(/^Sources · /, "")) + '</div></div><button class="g" aria-label="Close sources" onclick="pnClose()">✕</button></div><div style="flex:1;overflow-y:auto;padding:12px">' +
       mm.c.map(function (c, i) {
       return '<div class="src' + (S.hn === i + 1 ? " hl" : "") + '"><b>' + (i + 1) + ". " + E(c[0]) + '</b><div class="sm">' +
         c[1] + '</div><p class="sm" style="border-left:2px solid var(--bd2);padding-left:8px;margin:8px 0">' +
-        E(c[2]) + '</p>' + (mm.r ? "" : '<button style="width:100%;font-size:12px" onclick="' + (mm.w ? "alert(\'Demo: this would open the website.\')" : "ov(" +
+        E(c[2]) + '</p>' + (mm.r && c[3] < 0 ? "" : '<button style="width:100%;font-size:12px" onclick="' + (mm.w ? "alert(\'Demo: this would open the website.\')" : "ov(" +
         i + ")") + '">' + (mm.w ? "Open website" : "Open module") + '</button>') + '</div>'
     }).join("") + '</div><div class="sm" style="padding:10px 14px;border-top:1px solid var(--bd)">' + (mm.w ? "Web results. Check the source before relying on it." : "Only your enrolled courses are searched.") +
       '</div></div>';

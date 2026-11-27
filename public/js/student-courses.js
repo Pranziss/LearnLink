@@ -27,9 +27,10 @@ function tg(i) {
   render()
 }
 
+// "Open module" in the Sources panel: the module in the viewer, with this source's passage highlighted (live).
 function ov(i) {
-  var c = MS[S.mi].c[i];
-  S.vw = { c: c[3], m: c[4], h: c[5] };
+  var mm = MS[S.mi], c = mm.c[i];
+  S.vw = { c: c[3], m: c[4], h: c[5], p: mm.r ? c[2] : null, n: i + 1 };
   render()
 }
 

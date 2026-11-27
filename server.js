@@ -181,7 +181,10 @@ async function ask(body, hooks = {}, signal) {
     rq = contextQuery(q, history);
     const found = await R.search(kb, rq, { scope, allowed, level: body.lv, embed: kb.dense ? embed : null });
     retrieval = found.retrieval;
-    sources = found.hits.map((h, i) => ({ n: i + 1, title: h.c.module, course: h.c.course, text: h.c.text, bm25: +h.bm25.toFixed(3), dense: +h.dense.toFixed(3) }));
+    // courseId + pos (module number, from the file name "2-security-principles.md") let the app open that exact
+    // module when a student taps [1], and highlight the passage.
+    sources = found.hits.map((h, i) => ({ n: i + 1, title: h.c.module, course: h.c.course, courseId: h.c.courseId, pos: parseInt(h.c.id.split("/")[1], 10) || null,
+      text: h.c.text, bm25: +h.bm25.toFixed(3), dense: +h.dense.toFixed(3) }));
   }
   const tRetrieve = Date.now() - t0;
 

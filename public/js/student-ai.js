@@ -154,9 +154,45 @@ function hist() {
 function pbody(text, mi, caret) {
   text = String(text).replace(/\]\s+(?=[.,;:!?])/g, "]").replace(/\*\*([^*\n]+)\*\*/g, "$1").replace(/(^|[^\w*])\*([^*\s](?:[^*\n]*[^*\s])?)\*(?![\w*])/g, "$1$2");
   return E(text).replace(/\n+/g, "<br>").replace(/\[(\d+)\]/g, function (a, n) {
-    return mi >= 0 ? '<button class="ct" onclick="S.mi=' + mi + ";S.hn=" + n + ';S.pn=true;render()">' + n +
+    return mi >= 0 ? '<button class="ct" aria-label="Open source ' + n + '" onclick="cite(' + mi + "," + n + ')">' + n +
       "</button>" : ""
   }) + (caret ? '<span class="caret"></span>' : "")
+}
+
+/* ---------- clickable citations ----------
+   Each source from the server says which course (courseId) and module (pos) it came from. Tapping [1] opens that
+   module in the viewer, scrolled to the passage the answer used, which is highlighted. If the module can't be found
+   in this student's course list (or for older saved chats without that info), the Sources panel opens instead. */
+function srcLoc(x) {
+  var ci = -1, m = -1;
+  CO.forEach(function (c, i) { if (ci < 0 && (x.courseId && c[6] ? c[6] === x.courseId : c[0] === x.course)) ci = i });
+  if (ci > -1) {
+    var c = CO[ci];
+    m = x.pos && c[5] ? c[5].indexOf(+x.pos) : -1;
+    if (m < 0) m = c[3].map(function (s) { return String(s).toLowerCase() })
+      .indexOf(String(x.title || "").replace(/^Module\s+\d+:\s*/i, "").toLowerCase());   // older saved chats: by title
+  }
+  return m < 0 ? [-1, -1] : [ci, m]
+}
+// One Sources entry per passage: [module title, "Course · 82% match", passage, course index, module index, []].
+function srcRows(M) {
+  return M.sources.map(function (x) {
+    var L = srcLoc(x);
+    return [x.title, E(x.course) + " · " + Math.round(Math.max(x.bm25, x.dense || 0) * 100) + "% match", x.text, L[0], L[1], []]
+  })
+}
+function cite(mi, n) {
+  var s = MS[mi] && MS[mi].c[n - 1];
+  if (LIVE && s && s[3] > -1) {
+    S.vw = { c: s[3], m: s[4], h: [], p: s[2], n: n };
+    S.mi = mi;
+    S.hn = n;
+  } else {
+    S.mi = mi;
+    S.hn = n;
+    S.pn = true;
+  }
+  render()
 }
 
 function finalH(M, text, mi) {
@@ -242,21 +278,7 @@ ask = function () {
     } else if (ev.type === "meta") {
       clearTimeout(guard);
       M = ev;
-      if (M.mode === "grounded") mi = MS.push({
-        t: "Sources · " + M.sources[0].course,
-        r: 1,
-        c: M.sources.map(function (x) {
-          return [
-            x.title,
-            E(x.course) + " · " + (M.retrieval === "hybrid" ? "hybrid" : "keyword") + " match " + Math.round(Math.max(x.bm25,
-              x.dense || 0) * 100) + "%",
-            x.text,
-            0,
-            0,
-            []
-          ]
-        })
-      }) - 1;
+      if (M.mode === "grounded") mi = MS.push({ t: "Sources · " + M.sources[0].course, r: 1, c: srcRows(M) }) - 1;
       ty.h = dots3(M.mode === "none" ? "" : "Writing the answer…");
       render()
     } else if (ev.type === "token") {

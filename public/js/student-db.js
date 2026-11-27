@@ -37,8 +37,8 @@ function loadSession(strict) {
   }, function (e) { if (strict) throw e })
 }
 // Courses and their published modules, from the database:
-// [name, instructor, college, module titles, module ids, module numbers]. In live mode the real list always
-// replaces the sample one, even when it is empty.
+// [name, instructor, college, module titles, module ids, module numbers, course id]. In live mode the real list
+// always replaces the sample one, even when it is empty.
 function loadCourses(strict) {
   return api("courses").then(function (j) {
     var rows = j.courses.map(function (c) {
@@ -48,7 +48,8 @@ function loadCourses(strict) {
         c.college || "",
         c.modules.map(function (m) { return m.title }),
         c.modules.map(function (m) { return m.id }),
-        c.modules.map(function (m) { return m.position })
+        c.modules.map(function (m) { return +m.position }),
+        c.id
       ]
     });
     if (LIVE || rows.length) {
@@ -162,21 +163,7 @@ function openChat(id) {
           return
         }
         var M = { mode: m.mode, sources: m.sources || [], retrieval: m.retrieval }, mi = -1;
-        if (M.mode === "grounded" && M.sources.length) mi = MS.push({
-          t: "Sources · " + M.sources[0].course,
-          r: 1,
-          c: M.sources.map(function (x) {
-            return [
-              x.title,
-              E(x.course) + " · " + (M.retrieval === "hybrid" ? "hybrid" : "keyword") + " match " + Math.round(Math.max(x.bm25,
-                x.dense || 0) * 100) + "%",
-              x.text,
-              0,
-              0,
-              []
-            ]
-          })
-        }) - 1;
+        if (M.mode === "grounded" && M.sources.length) mi = MS.push({ t: "Sources · " + M.sources[0].course, r: 1, c: srcRows(M) }) - 1;
         CH.push({ h: finalH(M, m.content, mi), t: M.mode === "none" ? "" : m.content, md: M.mode, mid: m.id, rt: m.rating,
           fr: false })
       });
