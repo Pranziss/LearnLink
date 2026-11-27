@@ -9,6 +9,7 @@
        student-chat.js      sidebar, home screen, chat, Sources panel
        student-ai.js        asking the AI (streamed answers), answer formatting, citations
        student-courses.js   a course's modules, the module viewer, the course space (Ask / Summary / Quiz / Flashcards)
+       student-study.js     Summary / Quiz / Flashcards data from the server (/api/study)
        student-db.js        database calls: account, courses, saved chats, ratings
        student-settings.js  Settings page
        student-network.js   offline / weak-connection banner

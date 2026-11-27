@@ -22,4 +22,5 @@ desktop.ini
 
 # Thesis drafts and other documents kept next to the code
 *.docx
+!GIT-GUIDE.docx
 *.pptx

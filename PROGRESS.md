@@ -14,9 +14,8 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 
 ## Next, in order
 
-1. [ ] **Real Summary, Quiz and Flashcards** in the course space, made by the AI from the selected modules
-   (they say "Coming soon" now). New file `public/js/student-quiz.js`. If time runs out: hide the three buttons.
-   *Depends on the demo date: still unknown.*
+1. [x] **Real Summary, Quiz and Flashcards, done Nov 27:** made by the AI from each module, kept, and made ahead
+   of time in the background. Still open: a teacher check of the quiz questions (see "Known limits" below).
 2. [x] **Clickable citations, done Nov 27:** clicking [1] opens the module and highlights the passage the answer came from.
 3. [ ] **Demo content and prep:**
    - [ ] real modules for 2 or 3 demo courses (IT 313 is placeholder text)
@@ -24,6 +23,17 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
    - [ ] a written demo script: what to click, what to say
 4. [x] **Screens (student app), done Nov 21:** loading placeholders, plain errors, suggestions, first-login tour,
    phone fixes. Still open: the same pass for the faculty and admin pages (they only got the loading placeholder).
+
+### Known limits of the study tools
+
+- **The right quiz answer is often the longest option** (about half the time; a fair 4-option quiz would be 25%).
+  The prompt asks for options of the same length, but the 4B model only partly follows it.
+- **Some questions are a little off.** Example seen in testing: "What is the purpose of hashing?" with the right
+  answer "protect data from unauthorized disclosure and modification" (the module only says integrity). A teacher
+  should look through the quizzes before students rely on them. Idea for later: let faculty see and remove
+  questions.
+- Long modules: only about 9,000 characters (spread over the whole module) are given to the model, so very long
+  uploads are summarized from a sample of their paragraphs.
 
 ### Small fixes waiting
 
@@ -52,6 +62,11 @@ Pitch: teacher-controlled answers with sources, hosted on campus, no cost. Say "
 ## Done
 
 ### Nov 27, 2026
+- **Real Summary, Quiz and Flashcards** (`study.js`, `/api/study`, `student-study.js`): made by `gemma3:4b` from
+  each module's own text, in a fixed JSON shape, checked and cleaned, kept in `.cache/study.json` and made in the
+  background while the GPU is idle. All 24 modules: 72 of 72 made, about 6 s each (slowest 8.7 s), none cut off.
+  Two model quirks fixed on the way: gemma repeated a closing quote until it ran out of tokens (double quotes are
+  now not allowed inside the JSON strings), and it put "A. / B." letters in front of quiz options.
 - **Clickable citations:** tapping [1] opens the Sources panel on that source (as before); its "Open module" opens that exact module (the server now sends `courseId` and the
   module number with each source), highlights the paragraph(s) the answer used and scrolls to it.
   Older saved chats find the module by title; if it can't be found, no Open module button.

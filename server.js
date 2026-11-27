@@ -3,6 +3,7 @@
 "use strict";
 const http = require("http"), fs = require("fs"), path = require("path"), zlib = require("zlib");
 const R = require("./retrieval");
+const { createStudy } = require("./study");                                     // Summary / Quiz / Flashcards
 const { PERSONA, GROUNDED, GENERAL_RULES, CHAT_RULES } = require("./prompts");   // the prompt texts
 
 // Tiny .env loader, so you don't need any package for it. A "# comment" after a value is ignored (same as api/_env.php).
@@ -31,6 +32,7 @@ const ALLOW_GENERAL = E.ALLOW_GENERAL !== "false";         // answers outside th
 const PHP_API = (E.PHP_API || "http://127.0.0.1/learnlink/api").replace(/\/$/, "");   // Laragon (Apache + PHP + MySQL): accounts, courses, uploads, chats, feedback
 const RELOAD_KEY = E.RELOAD_KEY || "";                      // PHP shows this key to ask for a reload after teachers change materials
 const REQUIRE_LOGIN = E.REQUIRE_LOGIN !== "false";          // AI answers only for logged-in users
+const STUDY_PREPARE = E.STUDY_PREPARE !== "false";          // make every module's summary / quiz / flashcards in the background while the GPU is idle
 const PUB = path.join(__dirname, "public");
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json", ".woff2": "font/woff2", ".jpg": "image/jpeg", ".webp": "image/webp" };
 
@@ -62,10 +64,12 @@ buildKB();
 
 /* ---------- Ollama (streaming) ---------- */
 // Streams tokens from Ollama. onToken(text) is called as they arrive; the full text is returned.
-async function chat(messages, onToken, signal) {
+// opts (study tools): format = a JSON schema the reply must follow, numPredict = longest reply, temperature.
+async function chat(messages, onToken, signal, opts = {}) {
   const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 120000);
   if (signal) signal.addEventListener("abort", () => ac.abort());
-  const body = { model: MODEL, stream: true, keep_alive: KEEP_ALIVE, messages, options: { temperature: TEMPERATURE, top_p: 0.9, repeat_penalty: 1.1, num_ctx: NUM_CTX, num_predict: NUM_PREDICT } };
+  const body = { model: MODEL, stream: true, keep_alive: KEEP_ALIVE, messages, options: { temperature: opts.temperature ?? TEMPERATURE, top_p: 0.9, repeat_penalty: 1.1, num_ctx: NUM_CTX, num_predict: opts.numPredict || NUM_PREDICT } };
+  if (opts.format) body.format = opts.format;
   const go = async (b) => {
     const r = await fetch(`${OLLAMA}/api/chat`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b), signal: ac.signal });
     if (!r.ok) { const j = await r.json().catch(() => ({})); throw { code: r.status === 404 ? 503 : 502, msg: (j && j.error) || "model_error" }; }
@@ -121,6 +125,22 @@ function acquire(onWait, signal) {
 }
 const tellPlaces = () => waiting.forEach((w, i) => { if (w.onWait) w.onWait(i + 1); });
 const release = () => { running--; const n = waiting.shift(); if (n) n.go(); tellPlaces(); };
+
+/* ---------- study tools (study.js) ---------- */
+// Their generations wait in the same line as students' questions, so they never run two models' worth at once.
+const study = createStudy({
+  dir: path.join(__dirname, "modules"),
+  cacheFile: path.join(__dirname, ".cache", "study.json"),
+  model: MODEL,
+  isIdle: () => running === 0 && waiting.length === 0,
+  generate: async (messages, o) => {
+    await acquire(null, o.signal);
+    try { return await chat(messages, null, o.signal, { format: o.format, numPredict: o.numPredict, temperature: 0.3 }); }
+    finally { release(); }
+  }
+});
+let modelReady = false;
+const prepareStudy = () => { if (STUDY_PREPARE && modelReady) study.prepareAll().catch(() => {}); };
 
 /* ---------- one question ---------- */
 const cleanHistory = (h) => (Array.isArray(h) ? h : []).slice(-8)
@@ -342,6 +362,7 @@ http.createServer(async (req, res) => {
     const ip = req.socket.remoteAddress || "";
     if (!RELOAD_KEY || req.headers["x-reload-key"] !== RELOAD_KEY || !/^(::1|127\.0\.0\.1|::ffff:127\.0\.0\.1)$/.test(ip)) return send(403, { error: "forbidden" });
     buildKB(); console.log(`Reloaded: ${kb.N} passages from ${Object.keys(kb.courses).length} courses`);
+    prepareStudy();                                            // changed modules get new quizzes in the background
     return send(200, { ok: true, passages: kb.N });
   }
 
@@ -370,6 +391,30 @@ http.createServer(async (req, res) => {
       res.end();
     });
   }
+  // Study tools for the course space: { kind: "summary" | "quiz" | "cards", course: course id, modules: [module numbers] }.
+  // One JSON object per line as each module is ready: {type:"module", num, title, items} or {type:"module", num, error},
+  // then {type:"done"}. Ready-made ones (the usual case) come back at once.
+  if (req.method === "POST" && url.pathname === "/api/study") {
+    if (limited(req.socket.remoteAddress)) return send(429, { error: "too_many_requests" });
+    let who;
+    try { if (!(who = await loggedIn(req))) return send(401, { error: "not_logged_in" }); } catch { return send(503, { error: "php_unreachable" }); }
+    return readJson(req, async (body) => {
+      const course = String(body.course || ""), nums = (Array.isArray(body.modules) ? body.modules : []).map(Number).filter(Number.isInteger).slice(0, 12);
+      if (!study.KINDS.includes(body.kind) || !nums.length) return send(400, { error: "bad_request" });
+      if (who.allowed && !who.allowed.includes(course)) return send(403, { error: "forbidden" });
+      res.writeHead(200, { "Content-Type": "application/x-ndjson", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" });
+      for (const num of nums) {
+        try {
+          const r = await study.get(body.kind, course, num);
+          res.write(JSON.stringify({ type: "module", num, title: r.title, items: r.items, cached: r.cached }) + "\n");
+        } catch (e) {
+          if (!e.code) console.error("Study error:", e.message || e);
+          res.write(JSON.stringify({ type: "module", num, error: e.code ? e.msg : errCode(e) }) + "\n");
+        }
+      }
+      res.end(JSON.stringify({ type: "done" }) + "\n");
+    });
+  }
   // Plain JSON answer (no streaming). Used by scripts and the evaluation.
   if (req.method === "POST" && url.pathname === "/api/ai") {
     if (limited(req.socket.remoteAddress)) return send(429, { error: "too_many_requests" });
@@ -394,7 +439,8 @@ http.createServer(async (req, res) => {
   console.log(s.ollama ? (s.modelInstalled ? `Model ready: ${MODEL}` : `Ollama is running but model "${MODEL}" is not installed. Run: ollama pull ${MODEL}`) : `Cannot reach Ollama at ${OLLAMA}. Start it with: ollama serve`);
   // Embed the modules first, then load the model. Both at once can run out of memory on a 6 GB GPU, and then the
   // embeddings time out and search stays keyword-only until the next restart.
-  if (s.modelInstalled) { await embedJob; warmUp(); }
+  // Then, while nobody is asking, make the study tools that are missing.
+  if (s.modelInstalled) { await embedJob; await warmUp(); modelReady = true; prepareStudy(); }
 });
 
 /* ---------- pages, scripts and styles ---------- */

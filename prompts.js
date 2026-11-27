@@ -2,6 +2,7 @@
 //   PERSONA + GROUNDED       when module passages were found (the passages are added by server.js)
 //   PERSONA + GENERAL_RULES  when nothing matched and general answers are allowed (ALLOW_GENERAL in .env)
 //   PERSONA + CHAT_RULES     for greetings and small talk
+//   STUDY_SYSTEM + STUDY.<kind> for the course space's Summary, Quiz and Flashcards (study.js), at the end of this file
 // After changing a prompt, restart npm start, and check the effect with: node tools/compare-models.js gemma3:4b
 "use strict";
 
@@ -52,4 +53,31 @@ const CHAT_RULES = `
 
 The student is just chatting (a greeting, thanks, or small talk). Reply naturally in one or two short sentences and invite them to ask about their courses. Do not mention modules unless they do.`;
 
-module.exports = { PERSONA, GROUNDED, GENERAL_RULES, CHAT_RULES };
+/* ---------- study tools: Summary, Quiz, Flashcards (study.js) ----------
+   Made from ONE module's text at a time. The model must reply with JSON in the shape study.js asks for (Ollama's
+   structured output). {n} is replaced with how many questions / cards to write (more for longer modules).
+   Changing any of these texts makes study.js make everything again (the prompt is part of the cache key). */
+const STUDY_SYSTEM = `You make study materials for students at BISU Balilihan from ONE course module written by their teacher.
+- Use only facts that are in the module text. Never add facts, examples, numbers or names that are not in it.
+- Write clear, simple English that a college student can read quickly. Keep the module's own technical terms.
+- Plain text only inside the JSON strings: no markdown, no bullet characters, no numbering, no emojis, and no quotation marks around words.
+- Reply with the JSON object only.`;
+
+const STUDY = {
+  summary: `Summarize this module for a student reviewing before an exam.
+- "points": 3 to 6 short points, one sentence each, in the order the module covers them. Together they must cover the module's main ideas.
+- "terms": up to 5 key terms from the module, each with a short meaning (at most 15 words) taken from the module. Use an empty list if the module defines no terms.`,
+  quiz: `Write {n} multiple-choice questions that check whether a student understood this module.
+- Every question must be answerable from the module alone. Ask about different ideas; do not ask the same thing twice.
+- Each question has exactly 4 options. Exactly one is correct according to the module. The wrong options must be plausible but clearly wrong according to the module.
+- All 4 options must be about the same length and written in the same style, so the right one does not stand out.
+- No "all of the above", "none of the above", or trick questions.
+- "answer" is the position of the correct option: 0, 1, 2 or 3.
+- "why": one sentence, based on the module, saying why the correct option is right.`,
+  cards: `Write {n} flashcards for memorizing this module.
+- "front": a key term, or a short question (at most 12 words).
+- "back": the answer from the module (at most 20 words).
+- Cover different ideas from the module; no two cards about the same thing.`
+};
+
+module.exports = { PERSONA, GROUNDED, GENERAL_RULES, CHAT_RULES, STUDY_SYSTEM, STUDY };

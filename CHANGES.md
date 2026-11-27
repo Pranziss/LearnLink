@@ -1,5 +1,26 @@
 # Changes log
 
+## Nov 27, 2026: real Summary, Quiz and Flashcards; clickable citations; code cleanup
+
+No database change. Restart `npm start`, then press Ctrl + Shift + R once. Right after the restart the server makes
+the summaries, quizzes and flashcards for every module in the background (about 5 seconds each, so roughly
+7 minutes for the current 24 modules, only while nobody is asking a question). They are kept in
+`.cache/study.json`, so this happens once; a module a teacher changes is made again by itself.
+
+- **Summary, Quiz and Flashcards are real** (new `study.js`, `/api/study` in `server.js`, prompts in `prompts.js`,
+  new `public/js/student-study.js`, tabs in `student-courses.js`). Made by the local model from each module's own
+  text, one module at a time. The model must answer in a fixed JSON shape (Ollama structured output); broken
+  questions are dropped, quiz options are shuffled (small models put the right answer first too often), and each
+  quiz answer comes with one sentence saying why. A note under each says it was made by the AI and that the module
+  wins if they disagree. Tested on all 24 modules: 72 of 72 made, about 6 s each, none cut off.
+  To stop the background making: `STUDY_PREPARE=false` in `.env`.
+- **Clickable citations:** tapping [1] opens the Sources panel on that source; its "Open module" opens the exact
+  module with the passage highlighted and scrolled to (`server.js` sends `courseId` and the module number with each
+  source).
+- **The module viewer slides in and out** instead of popping up with the whole page replaying its entrance.
+- **Student app code cleaned up**, same behaviour: readable names, comments, demo data in `student-demo.js`. See
+  `student-core.js` for how the parts fit together.
+
 ## Nov 21, 2026: smoother movement on phones
 
 No database change. Press Ctrl + Shift + R once.

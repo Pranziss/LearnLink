@@ -17,7 +17,10 @@ LearnLink has two halves:
 | `PROGRESS.md` | What is done, what is next, and open questions. Updated at the end of each work session. |
 | `server.js` | Main Node web server (no dependencies, Node 18+). Serves `public/`, runs `/api/ai` (retrieve passages, then stream the model's answer), `/api/status`, `/api/reload`, `/api/events` (live updates by Server-Sent Events) and `/api/notify`. Applies the rate limit and the one-at-a-time GPU queue, proxies the PHP API, forwards Google sign-in callbacks (`/oauth/*`) and starts the Classroom sync every `SYNC_MINUTES`. Writes `logs/queries.jsonl`. |
 | `retrieval.js` | Search engine for the course modules. Splits `modules/**/*.md` into passages, ranks them with BM25 (keywords) and Ollama embeddings (meaning), merges the two with Reciprocal Rank Fusion, and applies the relevance gates. Caches embeddings in `.cache/`. |
-| `prompts.js` | The prompt texts the model gets: the shared persona, and the rules for answering from the modules (with examples), general answers and small talk. Edit here to change how LearnLink talks; `server.js` decides which rules apply. |
+| `study.js` | Summary, Quiz and Flashcards for the course space: made by the model from one module's text (JSON in a fixed shape, checked and cleaned), kept in `.cache/study.json`, and made in the background for every module while the GPU is idle. Used by `server.js` (`/api/study`). |
+| `prompts.js` | The prompt texts the model gets: the shared persona, the rules for answering from the modules (with examples), general answers and small talk, and the Summary / Quiz / Flashcards instructions (`STUDY`). Edit here to change how LearnLink talks; `server.js` decides which rules apply. |
+| `tools/preflight.js` | Is everything ready to present? Checks settings, Ollama and the models (and loads the model), the server and that it runs the current code, PHP/MySQL, search, the made quizzes, placeholder modules, and prints the address for phones. |
+| `tools/ui-check.mjs` | Clicks through the student app in a headless Chrome (fake data, no login needed) at phone and desktop size, light and dark: screenshots in `logs/ui-check/`, page errors, and what changed since the last run. |
 | `tools/compare-models.js` | Compares language models on the real retrieval and prompts (17 questions, private server copy on port 3199). Writes `logs/model-compare/`. See README, "Choosing the model". |
 | `package.json` | Project name and the `npm start` / `npm run dev` scripts. No packages to install. |
 | `.env.example` | Template for the settings file: model names, Ollama address, port, tuning, MySQL, Google OAuth clients, SMTP. Copy it to `.env`. |
@@ -27,6 +30,7 @@ LearnLink has two halves:
 | `README.md` | Setup, how answers are made, adding courses, Google Classroom setup, accounts, known limits. |
 | `CHANGES.md` | Dated log of what changed in each update and what to run afterwards. |
 | `FILES.md` | This file. |
+| `GIT-GUIDE.docx` | Git guide for this project: the everyday routine, looking at history, undoing a mistake (also after pushing), what Git does not roll back, branches, and a one-page cheat sheet. |
 | `.vscode/launch.json` | VS Code "Run LearnLink" debug configuration (starts `server.js`). |
 
 ## `api/`: PHP backend
@@ -99,6 +103,7 @@ starting content imported by `setup.php`. Each course is a folder of numbered ma
 | `js/student-chat.js` | Main layout, sidebar, home screen, chat view, Sources panel, and `ask()`. |
 | `js/student-ai.js` | Asking the AI through the login page (the message format is described at the top), streamed answers, Stop, error messages, answer formatting, citations and "Open module". |
 | `js/student-courses.js` | A course's modules, the module viewer (with the cited passage highlighted), and the course space: Ask, Summary, Quiz, Flashcards (one function per tab), "Leave this quiz?". |
+| `js/student-study.js` | Summary, Quiz and Flashcards data: asks the server (`/api/study`) for the modules in scope and shows each as it arrives; in `?demo` it uses the sample content. |
 | `js/student-db.js` | Database calls: account, courses, saved chats, ratings. |
 | `js/student-settings.js` | Settings: photo, appearance, password, download / delete my data. |
 | `js/student-network.js` | Connection status: offline / weak banner and toasts, from small test downloads. |
@@ -126,5 +131,5 @@ starting content imported by `setup.php`. Each course is a folder of numbered ma
 | Path | Purpose |
 | --- | --- |
 | `logs/queries.jsonl` | One line per question: text, mode, sources, timings. Used for the thesis measurements. |
-| `.cache/` | Saved embeddings so restarts are fast. |
+| `.cache/` | Saved embeddings so restarts are fast, and the made summaries / quizzes / flashcards (`study.json`). Safe to delete: everything is made again. |
 | `storage/uploads/<course>/` | Original files teachers uploaded. |

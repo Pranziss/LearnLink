@@ -142,12 +142,6 @@ function spaceView() {
   return { main: head + tab + "</div>" }
 }
 
-// Shown live for Summary / Quiz / Flashcards until the AI makes them.
-function comingSoon(what) {
-  return '<div class="card" style="text-align:center;padding:24px">' + chip("Coming soon", "n") + '<p style="margin:10px 0 0;line-height:1.6">' + what +
-    " made from your modules are on the way. For now, use <b>Ask</b>, for example “Summarize this module” or “Quiz me on this”.</p></div>"
-}
-
 /* Ask tab: questions about the modules in scope */
 function spaceAskTab() {
   var h = S.spaceChat.map(function (m) {
@@ -192,57 +186,104 @@ function spaceAsk(text) {
   })
 }
 
-/* Summary tab */
+/* Summary tab: one card per module, shown as each one is ready */
 function summaryTab() {
-  if (LIVE) return comingSoon("Summaries");
-  return spaceModules().map(function (m) {
-    return '<div class="card" style="margin-bottom:10px"><b>' + moduleTitle(S.course, m) + '</b><ul style="padding-left:18px;line-height:1.7;margin:6px 0 0">' +
-      sampleModule(S.course, m).summary.map(function (x) { return "<li>" + x + "</li>" }).join("") + "</ul></div>"
-  }).join("")
+  var st = studyFor("summary");
+  return st.modules.map(function (x) {
+    var head = "<b>" + moduleTitle(S.course, x.module) + "</b>";
+    if (x.state === "loading") return '<div class="card" style="margin-bottom:10px">' + head + '<div style="margin-top:10px">' + typingDots("Making the summary…") +
+      skeleton(["100%", "92%", "96%", "70%"]) + "</div></div>";
+    if (x.state === "error") return '<div class="card" style="margin-bottom:10px">' + head + studyProblem("summary", x.error) + "</div>";
+    var s = x.items;
+    return '<div class="card" style="margin-bottom:10px">' + head +
+      '<ul style="padding-left:18px;line-height:1.7;margin:6px 0 0">' + s.points.map(function (p) { return "<li>" + esc(p) + "</li>" }).join("") + "</ul>" +
+      (s.terms.length ? '<p class="sm" style="margin:12px 0 4px"><b>Key terms</b></p>' + s.terms.map(function (t) {
+        return '<p style="margin:0 0 6px;line-height:1.6"><b>' + esc(t.term) + "</b>: " + esc(t.meaning) + "</p>"
+      }).join("") : "") + "</div>"
+  }).join("") + aiNote()
 }
 
-/* Quiz tab: one question per module in scope */
-function quizQuestions() {
-  return spaceModules().map(function (m) { return sampleModule(S.course, m).quiz })   // [question, options, right option]
+// Under the made-by-AI content: where it comes from, and that the modules win if they disagree.
+function aiNote() {
+  return LIVE ? '<p class="sm" style="text-align:center;margin:12px 0 0">Made by LearnLink’s AI from your teacher’s modules. If something here disagrees with the module, the module is right.</p>' : ""
+}
+// A failed module: what happened, and a Try again button.
+function studyProblem(kind, code) {
+  return '<p class="sm" style="margin:8px 0 8px">' + studyError(code) + '</p><button onclick="retryStudy(\'' + kind + '\')">Try again</button>'
+}
+// While a quiz or the flashcards are being made: "2 of 3 modules ready".
+function studyWaiting(st, what) {
+  var n = st.modules.length, done = n - st.loading;
+  return '<div class="card" style="text-align:center;padding:24px">' + typingDots("Making your " + what + "…") +
+    '<p class="sm" style="margin:8px 0 0">' + (n > 1 ? done + " of " + n + " modules ready. " : "") + "This takes a few seconds the first time.</p></div>"
+}
+// Some modules failed: a line above the content, or the whole tab when nothing worked.
+function studyFailed(kind, st) {
+  if (!st.failed.length) return "";
+  if (!st.ready.length) return '<div class="card" style="text-align:center;padding:22px">' + chip("Couldn’t make it", "w") + studyProblem(kind, st.failed[0].error) + "</div>";
+  var names = st.failed.map(function (x) { return moduleTitle(S.course, x.module) }).join(", ");
+  return '<p class="sm" style="margin:0 0 10px">Left out: ' + names + ". " + studyError(st.failed[0].error) +
+    ' <a href="#" onclick="retryStudy(\'' + kind + '\');return false" style="color:var(--ac)">Try again</a></p>'
+}
+
+/* Quiz tab: the questions of all modules in scope, in module order */
+// [{ question, options, answer, why, module }]. Empty until every module's questions are in (load: see studyFor).
+function quizQuestions(load) {
+  var st = studyFor("quiz", load), qs = [];
+  if (st.loading) return qs;
+  st.ready.forEach(function (x) { x.items.questions.forEach(function (q) { qs.push(Object.assign({ module: x.module }, q)) }) });
+  return qs
 }
 function quizTab() {
-  if (LIVE) return comingSoon("Quizzes");
+  var st = studyFor("quiz");
+  if (st.loading) return studyWaiting(st, "quiz");
+  if (!st.ready.length) return studyFailed("quiz", st);
   var qs = quizQuestions();
   if (S.quizIndex >= qs.length) return '<div class="card" style="text-align:center;padding:24px"><div class="sm">Quiz complete</div>' +
-    '<div style="font-size:28px;font-weight:600;margin:4px 0 12px">' + S.quizScore + " / " + qs.length + "</div>" +
-    '<button onclick="S.quizIndex=0;S.quizScore=0;S.quizAnswer=null;render()">Try again</button></div>';
+    '<div style="font-size:28px;font-weight:600;margin:4px 0 6px">' + S.quizScore + " / " + qs.length + "</div>" +
+    '<p class="sm" style="margin:0 0 12px">' + (S.quizScore === qs.length ? "Perfect score!" : S.quizScore >= qs.length / 2 ? "Nice work. Review the ones you missed in the modules." : "Read the modules again, then try once more.") + "</p>" +
+    '<button onclick="S.quizIndex=0;S.quizScore=0;S.quizAnswer=null;render()">Try again</button></div>' + aiNote();
   var Q = qs[S.quizIndex], picked = S.quizAnswer;
-  return '<p class="sm">Question ' + (S.quizIndex + 1) + " of " + qs.length + '</p><p style="font-weight:600;margin:0 0 12px">' + Q[0] + "</p>" +
-    Q[1].map(function (o, i) {
-      return '<button class="opt' + (picked === null ? "" : i === Q[2] ? " ok" : i === picked ? " bad" : "") + '" onclick="pickAnswer(' + i + ')">' + o + "</button>"
+  return studyFailed("quiz", st) +
+    '<p class="sm">Question ' + (S.quizIndex + 1) + " of " + qs.length + (st.ready.length > 1 ? " · " + moduleTitle(S.course, Q.module) : "") + "</p>" +
+    '<p style="font-weight:600;margin:0 0 12px">' + esc(Q.question) + "</p>" +
+    Q.options.map(function (o, i) {
+      return '<button class="opt' + (picked === null ? "" : i === Q.answer ? " ok" : i === picked ? " bad" : "") + '" onclick="pickAnswer(' + i + ')">' + esc(o) + "</button>"
     }).join("") +
-    (picked !== null ? '<div style="display:flex;justify-content:space-between;align-items:center"><span class="sm">' + (picked === Q[2] ? "Correct" : "Not quite. The answer is highlighted.") + "</span>" +
-      '<button class="p" onclick="S.quizIndex++;S.quizAnswer=null;render()">' + (S.quizIndex + 1 === qs.length ? "Finish" : "Next") + "</button></div>" : "")
+    (picked !== null ? (Q.why ? '<p class="sm" style="margin:4px 0 10px;line-height:1.6">' + esc(Q.why) + "</p>" : "") +
+      '<div style="display:flex;justify-content:space-between;align-items:center"><span class="sm">' + (picked === Q.answer ? "Correct" : "Not quite. The answer is highlighted.") + "</span>" +
+      '<button class="p" onclick="S.quizIndex++;S.quizAnswer=null;render()">' + (S.quizIndex + 1 === qs.length ? "Finish" : "Next") + "</button></div>" : "") + aiNote()
 }
 function pickAnswer(i) {
   if (S.quizAnswer !== null) return;
   S.quizAnswer = i;
-  if (i === quizQuestions()[S.quizIndex][2]) S.quizScore++;
+  if (i === quizQuestions()[S.quizIndex].answer) S.quizScore++;
   render()
 }
 
 /* Flashcards tab: all cards of the modules in scope; tap to flip */
+// [{ front, back, module }]. Empty until every module's cards are in.
 function flashcards() {
-  var cards = [];
-  spaceModules().forEach(function (m) { sampleModule(S.course, m).cards.forEach(function (x) { cards.push(x) }) });
-  return cards   // [front, back]
+  var st = studyFor("cards"), cards = [];
+  if (st.loading) return cards;
+  st.ready.forEach(function (x) { x.items.cards.forEach(function (k) { cards.push(Object.assign({ module: x.module }, k)) }) });
+  return cards
 }
 function flashcardsTab() {
-  if (LIVE) return comingSoon("Flashcards");
-  var cards = flashcards(), k = cards[S.cardIndex];
-  return '<p class="sm" style="text-align:center">Card ' + (S.cardIndex + 1) + " of " + cards.length + "</p>" +
+  var st = studyFor("cards");
+  if (st.loading) return studyWaiting(st, "flashcards");
+  if (!st.ready.length) return studyFailed("cards", st);
+  var cards = flashcards(), k = cards[S.cardIndex] || cards[0];
+  return studyFailed("cards", st) +
+    '<p class="sm" style="text-align:center">Card ' + (S.cardIndex + 1) + " of " + cards.length + (st.ready.length > 1 ? " · " + moduleTitle(S.course, k.module) : "") + "</p>" +
     '<div class="card" onclick="S.cardFlipped=!S.cardFlipped;render()" style="cursor:pointer;min-height:170px;display:grid;place-items:center;text-align:center;padding:22px"><div>' +
-    '<div class="sm">' + (S.cardFlipped ? "Answer" : "Question") + '</div><p style="font-size:17px;margin:6px 0 0">' + (S.cardFlipped ? k[1] : k[0]) + "</p></div></div>" +
+    '<div class="sm">' + (S.cardFlipped ? "Answer" : "Question") + '</div><p style="font-size:17px;margin:6px 0 0">' + esc(S.cardFlipped ? k.back : k.front) + "</p></div></div>" +
     '<p class="sm" style="text-align:center">Tap the card to flip</p>' +
-    '<div style="display:flex;gap:8px;justify-content:center"><button onclick="nextCard(-1)">Previous</button><button onclick="nextCard(1)">Next</button></div>'
+    '<div style="display:flex;gap:8px;justify-content:center"><button onclick="nextCard(-1)">Previous</button><button onclick="nextCard(1)">Next</button></div>' + aiNote()
 }
 function nextCard(step) {
   var n = flashcards().length;
+  if (!n) return;
   S.cardIndex = (S.cardIndex + step + n) % n;
   S.cardFlipped = false;
   render()
@@ -250,7 +291,7 @@ function nextCard(step) {
 
 /* ---------- "Leave this quiz?" ---------- */
 function quizInProgress() {
-  return S.view === "space" && S.spaceTab === "quiz" && (S.quizAnswer !== null || S.quizIndex > 0) && S.quizIndex < spaceModules().length
+  return S.view === "space" && S.spaceTab === "quiz" && (S.quizAnswer !== null || S.quizIndex > 0) && S.quizIndex < quizQuestions(false).length
 }
 // Run go() now, or, with a quiz half done, first ask whether to leave it (the answers would be lost).
 function leaveGuard(go) {
@@ -260,7 +301,7 @@ function leaveQuizDialog() {
   if (!S.confirmLeave) return "";
   return '<div style="position:absolute;inset:0;background:rgba(10,26,69,.5);display:grid;place-items:center;z-index:30">' +
     '<div class="card" role="dialog" aria-modal="true" aria-label="Leave this quiz?" style="max-width:360px;width:calc(100% - 40px);text-align:center;padding:22px;animation:pop .3s">' +
-    '<h3 style="margin:0 0 6px;font-size:18px">Leave this quiz?</h3><p style="color:var(--t2);margin:0 0 16px">You’re on question ' + (S.quizIndex + 1) + " of " + spaceModules().length +
+    '<h3 style="margin:0 0 6px;font-size:18px">Leave this quiz?</h3><p style="color:var(--t2);margin:0 0 16px">You’re on question ' + (S.quizIndex + 1) + " of " + quizQuestions(false).length +
     '. If you leave now, your answers will be lost.</p><div style="display:flex;gap:8px;justify-content:center">' +
     '<button class="p" onclick="S.confirmLeave=null;render()">Keep going</button><button onclick="var go=S.confirmLeave;S.confirmLeave=null;go()">Leave quiz</button></div></div></div>'
 }
